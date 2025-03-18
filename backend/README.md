@@ -151,7 +151,8 @@ uvicorn app_fastapi:app --host 0.0.0.0 --port 8000 --reload
 ### 5.3. Set Up MySQL Database
 
 ```bash
-docker exec -it your-container-name mysql -u root -p 
+docker exec -it your-container-name bash
+mysql -u root -p
 ```
 
 - Enter `root password` (configured in `.env` or `docker-compose.yml`).

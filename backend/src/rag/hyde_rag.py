@@ -1,13 +1,13 @@
 from qdrant_client.http import models
 from llama_index.retrievers.bm25 import BM25Retriever
 from src.logger import get_formatted_logger
-from .base_rag import BaseRAGManager
+from .base import BaseRAG
 import Stemmer
 from llama_index.core.node_parser import SentenceSplitter
 
 logger = get_formatted_logger(__file__)
 
-class HyDERAG(BaseRAGManager):
+class HyDERAG(BaseRAG):
     """
     HyDE RAG implementation Hybrid Rag and Hypothetical Document Embeddings using Qdrant directly
     """

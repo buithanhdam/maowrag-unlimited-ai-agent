@@ -1,12 +1,12 @@
 from qdrant_client.http import models
 from llama_index.retrievers.bm25 import BM25Retriever
 from src.logger import get_formatted_logger
-from .base_rag import BaseRAGManager
+from .base import BaseRAG
 import Stemmer
 
 logger = get_formatted_logger(__file__)
 
-class HybridRAG(BaseRAGManager):
+class HybridRAG(BaseRAG):
     """
     Hybrid RAG implementation combining vector search and BM25 using Qdrant directly
     """

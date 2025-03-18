@@ -23,3 +23,5 @@ python-docx==1.1.2
 llama-index-retrievers-bm25==0.5.0
 pymysql==1.1.1
 boto3==1.36.24
+mcp
+tavily-python==0.5.1

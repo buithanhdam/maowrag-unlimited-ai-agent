@@ -1,7 +1,7 @@
 # rag_manager.py
 from typing import Optional, Type
 from src.logger import get_formatted_logger
-from .base_rag import BaseRAGManager
+from .base import BaseRAG
 from .naive_rag import NaiveRAG
 from .hybrid_rag import HybridRAG
 from.hyde_rag import HyDERAG
@@ -28,7 +28,7 @@ class RAGManager:
     def get_rag_implementation(
         cls,
         rag_type: RAGType
-    ) -> Optional[Type[BaseRAGManager]]:
+    ) -> Optional[Type[BaseRAG]]:
         """
         Get the RAG implementation class for a given RAG type
         
@@ -51,7 +51,7 @@ class RAGManager:
         qdrant_url: str,
         gemini_api_key: str,
         **kwargs
-    ) -> BaseRAGManager:
+    ) -> BaseRAG:
         """
         Create a new RAG instance of the specified type
         
@@ -88,7 +88,7 @@ class RAGManager:
     def register_implementation(
         cls,
         rag_type: RAGType,
-        implementation: Type[BaseRAGManager]
+        implementation: Type[BaseRAG]
     ):
         """
         Register a new RAG implementation
@@ -97,8 +97,8 @@ class RAGManager:
             rag_type: The type of RAG to register
             implementation: The implementation class
         """
-        if not issubclass(implementation, BaseRAGManager):
-            raise ValueError("Implementation must inherit from BaseRAGManager")
+        if not issubclass(implementation, BaseRAG):
+            raise ValueError("Implementation must inherit from BaseRAG")
             
         cls._rag_implementations[rag_type] = implementation
         logger.info(f"Registered new implementation for {rag_type.value}")

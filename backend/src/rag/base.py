@@ -13,7 +13,7 @@ from llama_index.core.node_parser import SentenceSplitter
 from src.config import QdrantPayload
 logger = get_formatted_logger(__file__)
 
-class BaseRAGManager(ABC):
+class BaseRAG(ABC):
     """
     Abstract base class for RAG implementations
     """

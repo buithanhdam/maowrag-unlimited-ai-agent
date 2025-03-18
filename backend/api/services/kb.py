@@ -15,7 +15,7 @@ from api.schemas.kb import (
     DocumentCreate,
     DocumentResponse
 )
-from src.rag.base_rag import BaseRAGManager
+from backend.src.rag.base import BaseRAG
 from src.db.models import (
     KnowledgeBase,
     RAGConfig,
@@ -156,7 +156,7 @@ class KnowledgeBaseService:
         self,
         session: Session,
         kb_id: int
-     ) -> BaseRAGManager:
+     ) -> BaseRAG:
         kb = session.query(KnowledgeBase).filter(KnowledgeBase.id == kb_id).first()
         if not kb:
             raise HTTPException(status_code=404, detail="Knowledge base not found")

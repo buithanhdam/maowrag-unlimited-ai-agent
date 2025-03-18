@@ -2,10 +2,10 @@ from typing import List, Dict
 from llama_index.core import Document
 from qdrant_client.http import models
 from src.logger import get_formatted_logger
-from .base_rag import BaseRAGManager
+from .base import BaseRAG
 logger = get_formatted_logger(__file__)
 
-class NaiveRAG(BaseRAGManager):
+class NaiveRAG(BaseRAG):
     """
     Standard RAG implementation using vector search
     """

@@ -2,7 +2,7 @@ from typing import List
 from qdrant_client.http import models
 from qdrant_client.models import ScoredPoint
 from src.logger import get_formatted_logger
-from .base_rag import BaseRAGManager
+from .base import BaseRAG
 from llama_index.core import PromptTemplate
 from llama_index.retrievers.bm25 import BM25Retriever
 import Stemmer
@@ -11,7 +11,7 @@ from llama_index.core.schema import NodeWithScore
 logger = get_formatted_logger(__file__)
 
 
-class FusionRAG(BaseRAGManager):
+class FusionRAG(BaseRAG):
     """
     Fusion RAG implementation using vector search, generate sub-queries and re-rank document score
     """
