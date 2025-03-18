@@ -45,7 +45,7 @@ services:
       - ./frontend/.env
     environment:
       - NODE_ENV=development
-      - NEXT_PUBLIC_BACKEND_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_BACKEND_API_URL=http://localhost:8001
       - WATCHPACK_POLLING=true    # Enable polling for hot reload in Docker
     volumes:
       - ./frontend:/app           # Mount the source code

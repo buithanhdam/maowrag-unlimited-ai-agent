@@ -144,7 +144,7 @@ AWS_STORAGE_TYPE=
 AWS_ENDPOINT_URL=
 
 # For frontend .env
-NEXT_PUBLIC_BACKEND_API_URL=http://localhost:8000
+NEXT_PUBLIC_BACKEND_API_URL=http://localhost:8001
 ```
 
 #### 3. Build and Run the Project
@@ -156,7 +156,8 @@ docker-compose up --build
 #### 4. Set Up MySQL Database (if needed)
 
 ```bash
-docker exec -it your-container-name mysql -u root -p
+docker exec -it your-container-name bash
+mysql -u root -p
 ```
 - Enter `root password` (configured in `.env` or `docker-compose.yml`).
 
