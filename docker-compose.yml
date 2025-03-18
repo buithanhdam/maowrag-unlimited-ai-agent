@@ -6,7 +6,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile.backend
     ports:
-      - "8000:8000"
+      - "8001:8000"
     env_file:
       - ./backend/.env
     volumes:
@@ -15,19 +15,19 @@ services:
       - PYTHONUNBUFFERED=1
       - QDRANT_URL=http://qdrant:6333
     networks:
-      - rag-app-network
+      - maowrag-network
   
   qdrant:
     image: "qdrant/qdrant:v1.12.0"
     ports:
-      - "6340:6333"
-      - "6341:6334"
+      - "6335:6333"
+      - "6336:6334"
     volumes:
       - ./backend/data/qdrant_storage:/qdrant/storage
     environment:
       QDRANT__STORAGE__ON_DISK_PAYLOAD: 'true'
     networks:
-      - rag-app-network
+      - maowrag-network
     healthcheck:
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/6333 && echo -e 'GET /healthz HTTP/1.1\r\nHost: localhost\r\n\r\n' >&3 && cat <&3 | grep -q '200 OK'"]
       interval: 30s
@@ -35,30 +35,12 @@ services:
       retries: 3
       start_period: 40s
 
-  # streamlit:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile.streamlit
-  #   ports:
-  #     - "8501:8501"
-  #   env_file:
-  #     - ./backend/.env
-  #   volumes:
-  #     - ./backend:/app
-  #   environment:
-  #     - PYTHONUNBUFFERED=1
-  #     - BACKEND_API_URL=http://backend:8000
-  #   depends_on:
-  #     - backend
-  #   networks:
-  #     - rag-app-network
-
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.frontend.dev
     ports:
-      - "3000:3000"
+      - "3001:3000"
     env_file:
       - ./frontend/.env
     environment:
@@ -70,7 +52,7 @@ services:
       - /app/node_modules         # Preserve node_modules in container
       - /app/.next               # Preserve Next.js build cache
     networks:
-      - rag-app-network
+      - maowrag-network
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
       interval: 30s
@@ -88,13 +70,13 @@ services:
       - MYSQL_PASSWORD=1
       - MYSQL_HOST=mysql
       - MYSQL_PORT=3306
-      - MYSQL_DB=ragagent
+      - MYSQL_DB=maowrag
       - MYSQL_ALLOW_EMPTY_PASSWORD=yes
     volumes:
       - ./backend/data/mysql_data:/var/lib/mysql
     networks:
-      - rag-app-network
+      - maowrag-network
     command: --default-authentication-plugin=mysql_native_password
 networks:
-  rag-app-network:
+  maowrag-network:
     driver: bridge

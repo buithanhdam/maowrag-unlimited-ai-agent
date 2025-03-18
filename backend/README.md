@@ -1,4 +1,4 @@
-# Agent LLM RAG App Backend
+# Multi-Agent Orchestrator with RAG, Web Search, and More - App Backend
 
 ## Table of Contents
 
@@ -26,10 +26,8 @@
 ├── .env.example
 ├── .gitignore
 ├── app_fastapi.py
-├── app_streamlit.py
 ├── docker-compose.yaml
 ├── README.md
-├── requirements_streamlit.txt
 ├── requirements.txt
 ```
 
@@ -43,10 +41,8 @@
 - `.env`: Environment variables file.
 - `.gitignore`: Lists files and directories to ignore in Git.
 - `app_fastapi.py`: Main FastAPI application.
-- `app_streamlit.py`: Main Streamlit application.
 - `docker-compose.yaml`: Docker Compose configuration.
 - `requirements.txt`: Backend dependencies.
-- `requirements_streamlit.txt`: Streamlit frontend dependencies.
 
 ---
 
@@ -63,8 +59,9 @@
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/buithanhdam/rag-app-agent-llm.git
-   cd rag-app-agent-llm/backend
+   git clone https://github.com/buithanhdam/maowrag-unlimited-ai-agent.git
+   cd maowrag-unlimited-ai-agent
+   cd backend
    ```
 
 2. **Set up the virtual environment**
@@ -84,10 +81,6 @@
    - Backend (FastAPI):
      ```bash
      pip install -r requirements.txt
-     ```
-   - Frontend (Streamlit):
-     ```bash
-     pip install -r requirements_streamlit.txt
      ```
 
 ---
@@ -135,14 +128,6 @@ uvicorn app_fastapi:app --host 0.0.0.0 --port 8000 --reload
 
 - Access API at: `http://127.0.0.1:8000`
 
-### 4.2. Run Streamlit Frontend
-
-```bash
-streamlit run app_streamlit.py --server.port=8501 --server.address=0.0.0.0
-```
-
-- Access UI at: `http://localhost:8501`
-
 ---
 
 ## 5. Using Docker
@@ -160,7 +145,6 @@ streamlit run app_streamlit.py --server.port=8501 --server.address=0.0.0.0
 ### 5.2. Included Services
 
 - **fastapi**: Exposes port `8000`.
-- **streamlit**: Exposes port `8501`.
 - **qdrant**: Exposes ports `6333`, `6334`.
 - **mysql**: Exposes port `3306`.
 
@@ -175,17 +159,16 @@ docker exec -it your-container-name mysql -u root -p
 
   ```bash
   CREATE USER 'user'@'%' IDENTIFIED BY '1';
-  GRANT ALL PRIVILEGES ON ragagent.* TO 'user'@'%';
+  GRANT ALL PRIVILEGES ON maowrag.* TO 'user'@'%';
   FLUSH PRIVILEGES;
   ```
   ```bash
-  CREATE DATABASE ragagent;
+  CREATE DATABASE maowrag;
   ```
 
 ### 5.4. Accessing Services
 
 - FastAPI: `http://localhost:8000`
-- Streamlit: `http://localhost:8501`
 
 ### 5.5. Stopping Services
 
@@ -195,9 +178,8 @@ docker-compose down
 
 ### 5.6. Additional Docker Information
 
-- Docker network: `rag-app-network` (bridge).
+- Docker network: `maowrag-network-backend` (bridge).
 - FastAPI service uses `./Dockerfile.backend`.
-- Streamlit service uses `./Dockerfile.streamlit`.
 
 ---
 
@@ -208,7 +190,7 @@ docker-compose down
   ```bash
   docker-compose up --build
   ```
-- Verify that required ports (8000, 8501, 6333) are not in use.
+- Verify that required ports (8000, 6333) are not in use.
 
 ---
 

@@ -15,25 +15,7 @@ services:
       - PYTHONUNBUFFERED=1
       - QDRANT_URL=http://qdrant:6333
     networks:
-      - rag-app-network
-
-  streamlit:
-    build:
-      context: .
-      dockerfile: Dockerfile.streamlit
-    ports:
-      - "8501:8501"
-    env_file:
-      - .env
-    volumes:
-      - .:/app
-    environment:
-      - PYTHONUNBUFFERED=1
-      - BACKEND_API_URL=http://fastapi:8000
-    depends_on:
-      - fastapi
-    networks:
-      - rag-app-network
+      - maowrag-network-backend
   
   qdrant:
     image: "qdrant/qdrant:v1.12.0"
@@ -45,7 +27,7 @@ services:
     environment:
       QDRANT__STORAGE__ON_DISK_PAYLOAD: 'true'
     networks:
-      - rag-app-network
+      - maowrag-network-backend
     healthcheck:
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/6333 && echo -e 'GET /healthz HTTP/1.1\r\nHost: localhost\r\n\r\n' >&3 && cat <&3 | grep -q '200 OK'"]
       interval: 30s
@@ -63,13 +45,13 @@ services:
       - MYSQL_PASSWORD=1
       - MYSQL_HOST=localhost
       - MYSQL_PORT=3306
-      - MYSQL_DB=ragagent
+      - MYSQL_DB=maowrag
     volumes:
       - ./data/mysql_data:/var/lib/mysql
     networks:
-      - rag-app-network
+      - maowrag-network-backend
     command: --default-authentication-plugin=mysql_native_password
 
 networks:
-  rag-app-network:
+  maowrag-network-backend:
     driver: bridge

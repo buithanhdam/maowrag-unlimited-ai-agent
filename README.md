@@ -120,6 +120,8 @@ cp ./frontend/.env.example ./frontend/.env
 cp ./backend/.env.example ./backend/.env
 ```
 
+and fill values:
+
 ```plaintext
 # For backend .env
 GOOGLE_API_KEY=<your_google_api_key>
@@ -162,9 +164,9 @@ Run SQL queries:
 
 ```sql
 CREATE USER 'user'@'%' IDENTIFIED BY '1';
-GRANT ALL PRIVILEGES ON ragagent.* TO 'user'@'%';
+GRANT ALL PRIVILEGES ON maowrag.* TO 'user'@'%';
 FLUSH PRIVILEGES;
-CREATE DATABASE ragagent;
+CREATE DATABASE maowrag;
 ```
 
 #### 5. Access the Application
