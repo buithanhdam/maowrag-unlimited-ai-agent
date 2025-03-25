@@ -5,7 +5,7 @@ from enum import Enum
 import json
 from typing import Any, Dict, Generator, List, Optional, Union
 from src.agents.utils import clean_json_response
-from src.agents.llm import BaseLLM
+from src.llm import BaseLLM
 from llama_index.core.llms import ChatMessage
 from typing import AsyncGenerator
 from llama_index.core.tools import FunctionTool

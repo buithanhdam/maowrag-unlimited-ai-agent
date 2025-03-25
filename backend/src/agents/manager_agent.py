@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional, Tuple, Generator, AsyncGenerator
 from llama_index.core.llms import ChatMessage
 from llama_index.core.tools import FunctionTool
-from src.agents.llm import BaseLLM
+from src.llm import BaseLLM
 from src.logger import get_formatted_logger
 import json
 import asyncio

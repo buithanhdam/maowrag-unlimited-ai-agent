@@ -3,7 +3,7 @@ from typing import List, Any, Generator, Optional, AsyncGenerator, Union
 from llama_index.core.llms import ChatMessage
 from llama_index.core.tools import FunctionTool
 from src.logger import get_formatted_logger
-from src.agents.llm import BaseLLM
+from src.llm import BaseLLM
 from src.agents.base import BaseAgent, AgentOptions
 from src.agents.utils import ChatHistory
 

@@ -3,7 +3,7 @@ from typing import AsyncGenerator, Generator, List,Any, Optional
 from colorama import Fore
 from llama_index.core.tools import FunctionTool
 from llama_index.core.llms import ChatMessage
-from src.agents.llm import BaseLLM
+from src.llm import BaseLLM
 from src.agents.utils import PlanStep, ExecutionPlan, clean_json_response
 from src.agents.base import BaseAgent, AgentOptions
 import asyncio

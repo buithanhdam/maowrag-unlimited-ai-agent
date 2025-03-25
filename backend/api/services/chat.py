@@ -10,7 +10,7 @@ from api.schemas.chat import (
     MessageCreate, MessageResponse
 )
 from src.agents import ReActAgent, AgentOptions, ReflectionAgent, ManagerAgent, BaseAgent
-from src.agents.llm import UnifiedLLM # Import other LLM providers as needed
+from src.llm import UnifiedLLM # Import other LLM providers as needed
 from src.tools.tool_manager import tool_manager
 
 class ChatService:
