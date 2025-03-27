@@ -23,7 +23,7 @@ class NaiveRAG(BaseRAG):
         try:
             
             # Step 1: Convert user query to embedding
-            query_embedding = self.embedding_model.get_text_embedding(query)
+            query_embedding = self.dense_embedding_model.get_text_embedding(query)
             
             # Step 2: Perform vector search using query embedding
             results = self.qdrant_client.search_vector(

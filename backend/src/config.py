@@ -73,6 +73,8 @@ class Settings(BaseSettings):
     AWS_REGION_NAME:str=os.getenv('AWS_REGION_NAME', ''),
     AWS_STORAGE_TYPE:str=os.getenv('AWS_STORAGE_TYPE', ''),
     AWS_ENDPOINT_URL:str="https://s3.ap-southeast-2.amazonaws.com"
+    
+    TAVILY_API_KEY:str = os.getenv('TAVILY_API_KEY', '')
     # LLM configurations
     OPENAI_CONFIG: LLMConfig = LLMConfig(
         api_key=os.getenv('OPENAI_API_KEY', ''),

@@ -1,13 +1,16 @@
 from abc import ABC, abstractmethod
+import json
 from typing import List, Optional
 import uuid
+from fastembed import SparseTextEmbedding
 from tqdm import tqdm
 from qdrant_client.http import models
 from llama_index.core import Document, Settings
 from llama_index.llms.gemini import Gemini
-from llama_index.embeddings.gemini import GeminiEmbedding
-from .embed.gemini_embedding import GeminiEmbedding
+# from llama_index.embeddings.gemini import GeminiEmbedding
+from .embed.gemini_embedding_model import GeminiEmbedding
 from llama_index.core.node_parser import SimpleNodeParser
+from llama_index.core.schema import NodeWithScore
 from src.db.qdrant import QdrantVectorDatabase
 from src.logger import get_formatted_logger
 from llama_index.core.node_parser import SentenceSplitter
@@ -33,17 +36,17 @@ class BaseRAG(ABC):
             api_key=gemini_api_key,
             temperature=0.1
         )
-        self.embedding_model = GeminiEmbedding(
-            # api_key=gemini_api_key
+        self.dense_embedding_model = GeminiEmbedding(
             api_key=gemini_api_key,
             model_name="models/text-embedding-004",
-            # gemini-embedding-exp-03-07 
+           # gemini-embedding-exp-03-07 
             output_dimensionality=768
         )
+        self.sparse_embedding_model = SparseTextEmbedding(model_name="Qdrant/bm25",lazy_load=True)
         
         # Set global settings
         Settings.llm = self.llm
-        Settings.embed_model = self.embedding_model
+        Settings.embed_model = self.dense_embedding_model
         Settings.chunk_size = chunk_size
         Settings.chunk_overlap = chunk_overlap
         
@@ -97,11 +100,12 @@ class BaseRAG(ABC):
             # Index chunks
             chunks_iter = tqdm(chunks, desc="Indexing...") if show_progress else chunks
             for chunk in chunks_iter:
-                embedding = self.embedding_model.get_text_embedding(chunk.text)
-
+                dense_embedding = self.dense_embedding_model.get_text_embedding(chunk.text)
+                sparse_embedding = self.sparse_embedding_model.embed(chunk.text)
+                sparse_embedding = list(sparse_embedding)[0].as_object()
                 # Ensure collection exists
                 if chunk == chunks[0]:  # Only check on first chunk
-                    self.ensure_collection(collection_name, len(embedding))
+                    self.ensure_collection(collection_name, len(dense_embedding))
 
                 payload = QdrantPayload(
                     document_id=document_id,
@@ -112,10 +116,12 @@ class BaseRAG(ABC):
                 self.qdrant_client.add_vector(
                     collection_name=collection_name,
                     vector_id=chunk.metadata["chunk_id"],
-                    vector=embedding,
+                    dense_vector=dense_embedding,
+                    sparse_vector=sparse_embedding,
                     payload=payload,
                 )
-                chunk.metadata["embedding"] = embedding
+                chunk.metadata["dense_embedding"] = json.dumps(dense_embedding)
+                chunk.metadata["sparse_embedding"] = json.dumps({key: value.tolist() for key, value in sparse_embedding.items()})
 
                 logger.info(
                     f"Successfully processed document {document_id} with chunk {chunk.metadata['chunk_id']}"
@@ -131,22 +137,23 @@ class BaseRAG(ABC):
         """
         if not self.qdrant_client.check_collection_exists(collection_name):
             self.qdrant_client.create_collection(collection_name, vector_size)
+            
     def convert_scored_points_to_nodes(
         self,
         scored_points: List[models.ScoredPoint],
         score_threshold: float = 0.0
-    ) -> List[Document]:
+    ) -> List[NodeWithScore]:
         """
-        Convert Qdrant ScoredPoint results to LlamaIndex nodes
+        Convert Qdrant ScoredPoint results to LlamaIndex NodeWithScore
         
         Args:
             scored_points: List of Qdrant search results
             score_threshold: Minimum score threshold for including results
             
         Returns:
-            List of LlamaIndex BaseNode objects
+            List of LlamaIndex NodeWithScore objects
         """
-        docs = []
+        nodes = []
         
         for point in scored_points:
             if point.score < score_threshold:
@@ -165,11 +172,11 @@ class BaseRAG(ABC):
                 }
             )
             
-            docs.append(doc)
+            nodes.append(NodeWithScore(node=doc, score=point.score))
                 # initialize node parser
-        splitter = SentenceSplitter(chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
+        # splitter = SentenceSplitter(chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
 
-        nodes = splitter.get_nodes_from_documents(docs)
+        # nodes = splitter.get_nodes_from_documents(docs)
             
         return nodes
 

@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from qdrant_client.http import models
 from qdrant_client import QdrantClient
 from typing import List, Dict, Any, Optional
+from fastembed.common.types import NumpyArray
 from qdrant_client.http.exceptions import ResponseHandlingException
 from tenacity import (
     retry,
@@ -123,6 +124,13 @@ class QdrantVectorDatabase(BaseVectorDatabase):
                         ),
                     )
                 },
+                sparse_vectors_config={
+                    "sparse": models.SparseVectorParams(
+                        index=models.SparseIndexParams(
+                            on_disk=False,
+                        )
+                    )
+                },
                 optimizers_config=models.OptimizersConfigDiff(
                     default_segment_number=5,
                     indexing_threshold=0,
@@ -136,7 +144,8 @@ class QdrantVectorDatabase(BaseVectorDatabase):
         self,
         collection_name: str,
         vector_id: str,
-        vector: List[float],
+        dense_vector: List[float],
+        sparse_vector:dict[str, NumpyArray],
         payload: QdrantPayload,
     ):
         """
@@ -145,11 +154,12 @@ class QdrantVectorDatabase(BaseVectorDatabase):
         Args:
             collection_name (str): Collection name to add
             vector_id (str): Vector ID
-            vector (List[float]): Vector embedding
+            dense_vector (List[float]): Dense vector
+            sparse_vector (dict[str, NumpyArray]): Sparse vector
             payload (QdrantPayload): Payload for the vector
         """
         if not self.check_collection_exists(collection_name):
-            self.create_collection(collection_name, len(vector))
+            self.create_collection(collection_name, len(dense_vector))
 
         self.client.upsert(
             collection_name=collection_name,
@@ -157,7 +167,12 @@ class QdrantVectorDatabase(BaseVectorDatabase):
                 models.PointStruct(
                     id=vector_id,
                     payload=payload.model_dump(),
-                    vector={"dense":vector},
+                    vector={
+                        "dense":dense_vector,
+                        "sparse": models.SparseVector(
+                        indices=sparse_vector.get("indices",[]), values=sparse_vector.get("values",[])
+                    )
+                    },
                 )
             ],
         )
@@ -219,7 +234,7 @@ class QdrantVectorDatabase(BaseVectorDatabase):
         collection_name: str,
         vector: list[float],
         search_params: models.SearchParams,
-        limit :int,
+        limit :int = 5,
         using="dense"
     ) -> List[ScoredPoint]:
         """
@@ -241,97 +256,95 @@ class QdrantVectorDatabase(BaseVectorDatabase):
             limit=limit
         ).points
     
-    # def hybrid_search_vector(
-    #     self,
-    #     collection_name: str,
-    #     vectors: list[float] | list[list[float]],
-    #     search_params: models.SearchParams,
-    #     limit :int,
-    # ) -> List[ScoredPoint]:
-    #     """
-    #     Hybrid Search for a vector in the collection
-    #     Args:
-    #         collection_name (str): Collection name to search
-    #         vector (list[float]): Vector embedding
-    #         search_params (models.SearchParams): Search parameters
-    #     Returns:
-    #         List[models.PointStruct]: List of points
-    #     """
-    #     if isinstance(vectors, list) and all(isinstance(x, (int, float)) for x in vectors):
-    #         vectors = [vectors]
-    #     matryoshka_prefetch = models.Prefetch(
-    #         prefetch=[
-    #             models.Prefetch(
-    #                 prefetch=[
-    #                     # The first prefetch operation retrieves 100 documents
-    #                     # using the Matryoshka embeddings with the lowest
-    #                     # dimensionality of 64.
-    #                     models.Prefetch(
-    #                         query=[0.456, -0.789, ..., 0.239],
-    #                         using="matryoshka-64dim",
-    #                         limit=100,
-    #                     ),
-    #                 ],
-    #                 # Then, the retrieved documents are re-ranked using the
-    #                 # Matryoshka embeddings with the dimensionality of 128.
-    #                 query=[0.456, -0.789, ..., -0.789],
-    #                 using="matryoshka-128dim",
-    #                 limit=50,
-    #             )
-    #         ],
-    #         # Finally, the results are re-ranked using the Matryoshka
-    #         # embeddings with the dimensionality of 256.
-    #         query=[0.456, -0.789, ..., 0.123],
-    #         using="matryoshka-256dim",
-    #         limit=25,
-    #     )
-    #     sparse_dense_rrf_prefetch = models.Prefetch(
-    #         prefetch=[
-    #             models.Prefetch(
-    #                 prefetch=[
-    #                     # The first prefetch operation retrieves 100 documents
-    #                     # using dense vectors using integer data type. Retrieval
-    #                     # is faster, but quality is lower.
-    #                     models.Prefetch(
-    #                         query=[7, 63, ..., 92],
-    #                         using="dense-uint8",
-    #                         limit=100,
-    #                     )
-    #                 ],
-    #                 # Integer-based embeddings are then re-ranked using the
-    #                 # float-based embeddings. Here we just want to retrieve
-    #                 # 25 documents.
-    #                 query=[-1.234, 0.762, ..., 1.532],
-    #                 using="dense",
-    #                 limit=25,
-    #             ),
-    #             # Here we just add another 25 documents using the sparse
-    #             # vectors only.
-    #             models.Prefetch(
-    #                 query=models.SparseVector(
-    #                     indices=[125, 9325, 58214],
-    #                     values=[-0.164, 0.229, 0.731],
-    #                 ),
-    #                 using="sparse",
-    #                 limit=25,
-    #             ),
-    #         ],
-    #         # RRF is activated below, so there is no need to specify the
-    #         # query vector here, as fusion is done on the scores of the
-    #         # retrieved documents.
-    #         query=models.FusionQuery(
-    #             fusion=models.Fusion.RRF,
-    #         ),
-    #     )
-    #     return self.client.query_points(
-    #         collection_name=collection_name,
-    #         prefetch=[
-    #             matryoshka_prefetch,
-    #             sparse_dense_rrf_prefetch,
-    #         ],
-    #         using="late-interaction",
-    #         query=vectors,
-    #         search_params=search_params,
-    #         with_payload=True,
-    #         limit=limit
-    #     ).points
+    def hybrid_search_vector(
+        self,
+        collection_name: str,
+        dense_vector: List[float],
+        sparse_vector:dict[str, NumpyArray],
+        search_params: models.SearchParams,
+        limit :int = 5,
+    ) -> List[ScoredPoint]:
+        """
+        Hybrid Search for a vector in the collection
+        Args:
+            collection_name (str): Collection name to search
+            dense_vector (List[float]): Dense vector
+            sparse_vector (dict[str, NumpyArray]): Sparse vector
+            search_params (models.SearchParams): Search parameters
+        Returns:
+            List[models.PointStruct]: List of points
+        """
+        return self.client.query_points(
+            collection_name=collection_name,
+            prefetch=[
+                models.Prefetch(
+                    query=dense_vector,
+                    using="dense",
+                    limit=limit,
+                ),
+                # Here we just add another 25 documents using the sparse
+                # vectors only.
+                models.Prefetch(
+                    query=models.SparseVector(
+                        indices=sparse_vector.get("indices",[]),
+                        values=sparse_vector.get("values",[])
+                    ),
+                    using="sparse",
+                    limit=limit,
+                ),
+            ],
+            query=models.FusionQuery(
+                fusion=models.Fusion.RRF,
+            ),
+            search_params=search_params,
+            with_payload=True,
+            limit=limit
+        ).points
+        
+    def hybrid_search_multi_vector(
+        self,
+        collection_name: str,
+        dense_vectors: List[List[float]],
+        sparse_vectors:List[dict[str, NumpyArray]],
+        search_params: models.SearchParams,
+        limit :int = 5,
+    ) -> List[ScoredPoint]:
+        """
+        Hybrid Search for multi vector in the collection
+        Args:
+            collection_name (str): Collection name to search
+            dense_vectors (List[List[float]]): List Dense vector
+            sparse_vectors (List[dict[str, NumpyArray]]): List Sparse vector
+            search_params (models.SearchParams): Search parameters
+        Returns:
+            List[models.PointStruct]: List of points
+        """
+        prefetchs = []
+        for dense_vector, sparse_vector in zip(dense_vectors, sparse_vectors):
+            prefetchs.append(
+                models.Prefetch(
+                    query=dense_vector,
+                    using="dense",
+                    limit=limit,
+                )
+            )
+            prefetchs.append(
+                models.Prefetch(
+                    query=models.SparseVector(
+                        indices=sparse_vector.get("indices",[]),
+                        values=sparse_vector.get("values",[])
+                    ),
+                    using="sparse",
+                    limit=limit,
+                )
+            )
+        return self.client.query_points(
+            collection_name=collection_name,
+            prefetch=prefetchs,
+            query=models.FusionQuery(
+                fusion=models.Fusion.RRF,
+            ),
+            search_params=search_params,
+            with_payload=True,
+            limit=limit
+        ).points

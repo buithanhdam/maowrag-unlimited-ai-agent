@@ -237,7 +237,8 @@ class DocumentChunk(Base):
     document_id = Column(Integer, ForeignKey("documents.id"))
     content = Column(Text, nullable=False)
     chunk_index = Column(Integer)
-    embedding = Column(JSON, nullable=True)
+    dense_embedding = Column(JSON, nullable=True)
+    sparse_embedding = Column(JSON, nullable=True)
     extra_info = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     

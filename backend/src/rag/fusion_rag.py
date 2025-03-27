@@ -1,11 +1,8 @@
 from typing import List
 from qdrant_client.http import models
-from qdrant_client.models import ScoredPoint
 from src.logger import get_formatted_logger
 from .base import BaseRAG
 from llama_index.core import PromptTemplate
-from llama_index.retrievers.bm25 import BM25Retriever
-import Stemmer
 from llama_index.core.schema import NodeWithScore
 
 logger = get_formatted_logger(__file__)
@@ -59,6 +56,7 @@ class FusionRAG(BaseRAG):
     ) -> str:
         try:
             # Step 1: Generate sub-queries from user query
+            logger.info("[Fuse Search] - Step 1: Generate sub-queries from user query")
             query_gen_prompt_str = (
                 "You are a helpful assistant that generates multiple search queries based on a "
                 "single input query. Generate {num_queries} search queries, one on each line, "
@@ -74,42 +72,41 @@ class FusionRAG(BaseRAG):
             queries.append(query)
             logger.info(f"Generated sub-queries: {queries}")
 
-            # Step 2: Convert sub-queries and user query to embedding
-            results: List[NodeWithScore] = []
-            sub_query_embeddings =  self.embedding_model.get_text_embedding_batch(queries)
+            # Step 2: Convert sub-queries and user query to embeddings
+            logger.info("[Fuse Search] - Step 2: Convert sub-queries and user query to embeddings")
+            dense_embeddings =  self.dense_embedding_model.get_text_embedding_batch(queries)
             
-            # Step 3: Perform vector search using query embedding
-            sub_query_results : List[ScoredPoint] = []
-            for sub_query_embedding in sub_query_embeddings:
-                sub_query_results.extend(self.qdrant_client.search_vector(
-                    collection_name=collection_name,
-                    vector=sub_query_embedding,
-                    limit=int(50//len(queries)),
-                    search_params=models.SearchParams(
-                        quantization=models.QuantizationSearchParams(
-                            ignore=False,
-                            rescore=True,
-                            oversampling=2.0,
-                        )
-                    ),
-                ))
+            batch_sparse_embeddings = self.sparse_embedding_model.embed(queries)
+            batch_sparse_embeddings = list(batch_sparse_embeddings)
+            sparse_embeddings = [ sparse_embedding.as_object() for sparse_embedding in batch_sparse_embeddings]
+            
+            # Step 3: Perform multi-vector search using query embedding and bm25
+            logger.info("[Fuse Search] - Step 3: Perform multi-vector search using query embedding and bm25")
+            sub_query_results = self.qdrant_client.hybrid_search_multi_vector(
+                dense_vectors=dense_embeddings,
+                sparse_vectors=sparse_embeddings,
+                collection_name=collection_name,
+                limit=limit,
+                search_params=models.SearchParams(
+                    quantization=models.QuantizationSearchParams(
+                        ignore=False,
+                        rescore=True,
+                        oversampling=2.0,
+                    )
+                ),
+            )
+            logger.info(sub_query_results)
+            # Step 4: Rerank and Filter results based on score threshold
+            logger.info("[Fuse Search] - Step 4: Rerank and Filter results based on score threshold")
             doc_nodes = self.convert_scored_points_to_nodes(
                 sub_query_results, score_threshold=score_threshold
             )
-            if doc_nodes:
-                ## Perform BM25 search
-                bm25_retriever = BM25Retriever.from_defaults(
-                    nodes=doc_nodes,
-                    similarity_top_k=limit,
-                    stemmer=Stemmer.Stemmer("english"),
-                    language="english",
-                )
-                bm25_results = bm25_retriever.retrieve(query)
-                results.extend(bm25_results)
 
-            contexts = self.fuse_rerank(results, similarity_top_k=limit)
+            contexts = self.fuse_rerank(doc_nodes, similarity_top_k=limit)
             logger.info(f"contexts: {contexts}")
-            # Step 4: Generate final response
+            
+            # Step 5: Generate final response
+            logger.info("[Fuse Search] - Step 5: Generate final response")
             prompt = f"""Given the following context and question, provide a comprehensive answer based solely on the provided context. If the context doesn't contain relevant information, say so.
 
             Context:
