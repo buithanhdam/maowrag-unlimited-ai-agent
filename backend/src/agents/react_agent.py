@@ -18,7 +18,7 @@ class ReActAgent(BaseAgent):
     def __init__(self, llm: BaseLLM, options: AgentOptions, system_prompt:str = "", tools: List[FunctionTool] = []):
         super().__init__(llm, options, system_prompt, tools)
 
-    async def _get_initial_plan(self, task: str, verbose:bool) -> ExecutionPlan:
+    async def _get_initial_plan(self, task: str, verbose:bool, chat_history: List[ChatMessage] = []) -> ExecutionPlan:
         """Generate initial execution plan with focus on available tools"""
         prompt = f"""
         You are a planning assistant with access to specific tools. Create a focused plan using ONLY the tools listed below.
@@ -51,7 +51,7 @@ class ReActAgent(BaseAgent):
         try:
             if verbose:
                 logger.info("Generating initial plan...")
-            response = await self.llm.achat(query=prompt)
+            response = await self.llm.achat(query=prompt,chat_history=chat_history)
             response = clean_json_response(response)
             plan_data = json.loads(response)
             
@@ -78,7 +78,7 @@ class ReActAgent(BaseAgent):
                 logger.error(f"Error generating initial plan: {str(e)}")
             raise e
 
-    async def _generate_summary(self, task: str, results: List[Any], verbose:bool) -> str:
+    async def _generate_summary(self, task: str, results: List[Any], verbose:bool, chat_history: List[ChatMessage] = []) -> str:
         """Generate a coherent summary of the results"""
         prompt = f"""
         Create a clear and concise summary based on the following:
@@ -99,7 +99,7 @@ class ReActAgent(BaseAgent):
         summary_prompt = self.system_prompt + "\n" + prompt
         
         try:
-            result = await self.llm.achat(query=summary_prompt)
+            result = await self.llm.achat(query=summary_prompt,chat_history=chat_history)
             if verbose:
                 logger.info(f"Summary generated successfully with final result: {result}.")
             return result
@@ -121,7 +121,7 @@ class ReActAgent(BaseAgent):
         
         try:
             # Generate plan
-            plan = await self._get_initial_plan(query,verbose)
+            plan = await self._get_initial_plan(query,verbose,chat_history)
             
             if verbose:
                 logger.info("\nExecuting plan...")
@@ -144,7 +144,7 @@ class ReActAgent(BaseAgent):
                             results.append(result)
                     else:
                         # Non-tool step - use LLM directly
-                        result = await self.llm.achat(query=step.description)
+                        result = await self.llm.achat(query=step.description,chat_history=chat_history)
                         results.append(result)
                         
                 except Exception as e:
@@ -158,7 +158,7 @@ class ReActAgent(BaseAgent):
                     logger.info(f"Step {step_num}/{len(plan.steps)} completed.")
                         
             # Generate final summary
-            return await self._generate_summary(query, results, verbose)
+            return await self._generate_summary(query, results, verbose,chat_history)
             
         except Exception as e:
             if verbose:
