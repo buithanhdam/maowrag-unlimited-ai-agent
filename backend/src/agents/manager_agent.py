@@ -33,7 +33,6 @@ Respond in JSON format:
 }}
         
 User input: {user_input}
-Recent chat history: {chat_history}
 \
 """
 
@@ -45,7 +44,6 @@ Your task is to assess whether the agent's response appropriately addresses the 
 User Query: {user_query}
 Selected Agent: {agent_name}
 Agent Response: {agent_response}
-Chat History: {chat_history}
 
 Please evaluate and respond in JSON format:
 {{
@@ -109,8 +107,7 @@ class ManagerAgent(BaseAgent):
             # Prepare classification prompt
             classification_prompt = CLASSIFY_PROMPT.format(
                 agent_descriptions=self._get_agent_descriptions(),
-                user_input=user_input,
-                chat_history=self._format_chat_history(chat_history)
+                user_input=user_input
             )
             
             if len(self.agent_registry) == 0:
@@ -118,7 +115,7 @@ class ManagerAgent(BaseAgent):
                 return None, 0.0, "No agents available"
                 
             # Get classification from LLM
-            response = await self.llm.achat(classification_prompt)
+            response = await self.llm.achat(classification_prompt,chat_history=chat_history)
             response = clean_json_response(response)
             
             try:
@@ -166,10 +163,9 @@ class ManagerAgent(BaseAgent):
                 user_query=user_query,
                 agent_name=agent_name,
                 agent_response=agent_response,
-                chat_history=self._format_chat_history(chat_history)
             )
             
-            validation_response = await self.llm.achat(validation_prompt)
+            validation_response = await self.llm.achat(validation_prompt,chat_history=chat_history)
             validation_response = clean_json_response(validation_response)
             
             try:
@@ -204,7 +200,8 @@ class ManagerAgent(BaseAgent):
         user_query: str,
         agent_response: str,
         validation_feedback: Dict[str, Any],
-        verbose: bool = False
+        verbose: bool = False,
+        chat_history: List[ChatMessage] = []
     ) -> str:
         """Refine an agent's response based on validation feedback"""
         try:
@@ -214,7 +211,7 @@ class ManagerAgent(BaseAgent):
                 validation_feedback=json.dumps(validation_feedback, indent=2)
             )
             
-            refined_response = await self.llm.achat(refinement_prompt)
+            refined_response = await self.llm.achat(refinement_prompt,chat_history=chat_history)
             if verbose:
                 logger.info(f"Response refined successfully")
             return refined_response
@@ -300,7 +297,8 @@ class ManagerAgent(BaseAgent):
                     user_query=query,
                     agent_response=agent_response,
                     validation_feedback=validation_result,
-                    verbose=verbose
+                    verbose=verbose,
+                    chat_history=chat_history
                 )
                 
                 final_response = refined_response
