@@ -21,7 +21,7 @@ class ReActAgent(BaseAgent):
     async def _get_initial_plan(self, task: str, verbose:bool, chat_history: List[ChatMessage] = []) -> ExecutionPlan:
         """Generate initial execution plan with focus on available tools"""
         prompt = f"""
-        You are a planning assistant with access to specific tools. Create a focused plan using ONLY the tools listed below.
+        Acting as a planning assistant with access to specific tools. Create a focused plan using ONLY the tools listed below.
         
         Task to accomplish: {task}
         
@@ -34,6 +34,8 @@ class ReActAgent(BaseAgent):
         3. For information retrieval tasks, immediately use the RAG search tool if available
         4. Keep the plan simple and focused - avoid unnecessary steps
         5. Never include web searches or external tool usage in the plan
+        6. If the task is simple conversation or greeting, mark all steps as requires_tool: false
+        7. If no tools are needed, create a single step with requires_tool: false
         
         Format your response as JSON:
         {{
@@ -85,12 +87,14 @@ class ReActAgent(BaseAgent):
         
         Original task: {task}
         Results from execution: {results}
-        
+ 
         Rules:
-        1. If no relevant information was found, clearly state that
-        2. Don't mention the internal steps or tools used
-        3. Focus on providing a direct, informative answer
-        4. If the information seems insufficient, acknowledge that
+        1. If the following task is simple small talk/greeting or a substantive question that don't require tools or planning -> only provide a friendly response.
+        2. If no relevant information was found, clearly state that
+        3. Don't mention the internal steps or tools used
+        4. Focus on providing a direct, informative answer
+        5. If the information seems insufficient, acknowledge that
+        6. Using friendly tone and be helpful
         """
         
         if verbose:
