@@ -10,9 +10,9 @@ from api.schemas.llm import (
     LLMFoundationResponse,
     LLMConfigCreate,
     LLMConfigUpdate,
-    LLMConfigResponse,
-    LLMProvider
+    LLMConfigResponse
 )
+from src.enums import LLMProviderType
 
 llm_router = APIRouter(prefix="/llm", tags=["llm"])
 
@@ -29,7 +29,7 @@ async def create_llm_foundation(
 async def get_llm_foundations(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
-    provider: Optional[LLMProvider] = None,
+    provider: Optional[LLMProviderType] = None,
     db: Session = Depends(get_db)
 ):
     """Get all LLM Foundations with optional filtering by provider"""

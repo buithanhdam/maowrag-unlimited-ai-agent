@@ -64,7 +64,6 @@ class LLMFoundation(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     provider = Column(Enum(LLMProviderType), nullable=False)
-    model_name = Column(String(100), nullable=False)
     model_id = Column(String(100), nullable=False, unique=True)
     description = Column(Text)
     capabilities = Column(JSON)  # Store model capabilities

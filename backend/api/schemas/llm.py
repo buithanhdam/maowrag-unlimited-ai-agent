@@ -2,40 +2,28 @@
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-from enum import Enum
+from src.enums import LLMProviderType
 
-class LLMProvider(str, Enum):
-    OPENAI = "openai"
-    GEMINI = "gemini" 
-    ANTHROPIC = "anthropic"
 
-class LLMFoundationCreate(BaseModel):
-    provider: LLMProvider
-    model_name: str
+class LLMFoundationBase(BaseModel):
+    provider: LLMProviderType
     model_id: str
     description: Optional[str] = None
     capabilities: Optional[Dict[str, Any]] = None
 
-class LLMFoundationUpdate(BaseModel):
-    provider: Optional[LLMProvider] = None
-    model_name: Optional[str] = None
-    model_id: Optional[str] = None
-    description: Optional[str] = None
-    capabilities: Optional[Dict[str, Any]] = None
+class LLMFoundationCreate(LLMFoundationBase):
+    pass
+    
+class LLMFoundationUpdate(LLMFoundationBase):
     is_active: Optional[bool] = None
 
-class LLMFoundationResponse(BaseModel):
+class LLMFoundationResponse(LLMFoundationBase):
     id: int
-    provider: LLMProvider
-    model_name: str
-    model_id: str
-    description: Optional[str]
-    capabilities: Optional[Dict[str, Any]]
     created_at: datetime
     updated_at: Optional[datetime]
     is_active: bool
 
-class LLMConfigCreate(BaseModel):
+class LLMConfigBase(BaseModel):
     foundation_id: int
     name: str
     temperature: float
@@ -45,27 +33,14 @@ class LLMConfigCreate(BaseModel):
     presence_penalty: Optional[float] = None
     system_prompt: str
     stop_sequences: Optional[List[str]] = None
+    
+class LLMConfigCreate(LLMConfigBase):
+    pass
 
-class LLMConfigUpdate(BaseModel):
-    name: Optional[str] = None
-    temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
-    top_p: Optional[float] = None
-    frequency_penalty: Optional[float] = None
-    presence_penalty: Optional[float] = None
-    system_prompt: Optional[str] = None
-    stop_sequences: Optional[List[str]] = None
+class LLMConfigUpdate(LLMConfigBase):
+    pass
 
-class LLMConfigResponse(BaseModel):
+class LLMConfigResponse(LLMConfigBase):
     id: int
-    foundation_id: int
-    name: str
-    temperature: float
-    max_tokens: int
-    top_p: Optional[float]
-    frequency_penalty: Optional[float]
-    presence_penalty: Optional[float]
-    system_prompt: str
-    stop_sequences: Optional[List[str]]
     created_at: datetime
     updated_at: Optional[datetime]

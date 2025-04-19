@@ -45,20 +45,6 @@ class UnifiedLLM(BaseLLM):
                     temperature=self.temperature,
                     max_tokens=self.max_tokens,
                 )
-            # elif self.model_name == "claude":
-            #     self.model = Anthropic(
-            #         api_key=self.api_key,
-            #         model=self.model_id,
-            #         temperature=self.temperature,
-            #         max_tokens=self.max_tokens
-            #     )
-            # elif self.model_name == "openai":
-            #     self.model = OpenAI(
-            #         api_key=self.api_key,
-            #         model=self.model_id,
-            #         temperature=self.temperature,
-            #         max_tokens=self.max_tokens
-            #     )
             else:
                 raise ValueError(f"Unsupported model type: {self.llm_provider}")
         except Exception as e:
@@ -91,7 +77,7 @@ class UnifiedLLM(BaseLLM):
             else:
                 return response.message.content
         except Exception as e:
-            logger.error(f"Error extracting response from {self.model_name}: {str(e)}")
+            logger.error(f"Error extracting response from {self.llm_provider}: {str(e)}")
             return response.message.content
 
     def chat(
