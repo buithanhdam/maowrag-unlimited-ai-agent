@@ -6,7 +6,7 @@ from .naive_rag import NaiveRAG
 from .hybrid_rag import HybridRAG
 from.hyde_rag import HyDERAG
 from .fusion_rag import FusionRAG
-from src.enums import RAGType
+from src.enums import RAGType, LLMProviderType
 logger = get_formatted_logger(__file__)
 
 
@@ -48,8 +48,8 @@ class RAGManager:
     def create_rag(
         cls,
         rag_type: RAGType,
-        qdrant_url: str,
-        gemini_api_key: str,
+        vector_db_url: str,
+        llm_type: LLMProviderType,
         **kwargs
     ) -> BaseRAG:
         """
@@ -57,8 +57,8 @@ class RAGManager:
         
         Args:
             rag_type: The type of RAG to create
-            qdrant_url: URL for Qdrant server
-            gemini_api_key: API key for Gemini
+            vector_db_url: URL for Qdrant server
+            llm_type: Type for LLM Model
             **kwargs: Additional arguments to pass to the RAG implementation
             
         Returns:
@@ -73,8 +73,8 @@ class RAGManager:
             
         try:
             rag_instance = implementation(
-                qdrant_url=qdrant_url,
-                gemini_api_key=gemini_api_key,
+                vector_db_url=vector_db_url,
+                llm_type=llm_type,
                 **kwargs
             )
             logger.info(f"Successfully created {rag_type.value} instance")

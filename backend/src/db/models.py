@@ -3,9 +3,8 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql import func
 from src.enums import ( AgentType, CommunicationRoleType, LLMProviderType, RoleType, MessageType, DocumentStatusType, ToolType, RAGType )
-from src.config import Settings
+from src.config import global_config
 
-settings = Settings()
 Base = declarative_base()
 
 class Agent(Base):
@@ -230,7 +229,11 @@ class AgentTool(Base):
     tool_id = Column(Integer, ForeignKey("tools.id"), primary_key=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{settings.MYSQL_USER}:{settings.MYSQL_PASSWORD}@{settings.MYSQL_HOST}:{settings.MYSQL_PORT}/{settings.MYSQL_DB}"
+SQLALCHEMY_DATABASE_URL = f"""mysql+pymysql://{global_config.MYSQL_USER}:
+{global_config.MYSQL_PASSWORD}@
+{global_config.MYSQL_HOST}:
+{global_config.MYSQL_PORT}/
+{global_config.MYSQL_DB}"""
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 Base.metadata.create_all(engine)

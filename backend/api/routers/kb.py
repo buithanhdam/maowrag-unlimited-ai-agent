@@ -4,7 +4,6 @@ from fastapi import APIRouter, Form, UploadFile, File, HTTPException, Depends
 from jsonschema import ValidationError
 from sqlalchemy.orm import Session
 
-from src.config import Settings
 from src.db.mysql import get_db
 from api.services.kb import KnowledgeBaseService
 from api.schemas.kb import (
@@ -20,8 +19,7 @@ kb_router = APIRouter(prefix="/kb", tags=["kb"])
 
 # Dependency to get KB service
 async def get_kb_service():
-    settings = Settings()
-    return KnowledgeBaseService(settings)
+    return KnowledgeBaseService()
 
 @kb_router.post("/", response_model=KnowledgeBaseResponse)
 async def create_knowledge_base(

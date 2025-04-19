@@ -8,6 +8,7 @@ import dotenv
 dotenv.load_dotenv()
 
 from src.prompt import LLM_SYSTEM_PROMPT
+from src.enums import LLMProviderType
 
 class ReaderConfig(BaseModel):
     """Configuration for DoclingReader"""
@@ -30,7 +31,7 @@ class RAGConfig(BaseModel):
 class LLMConfig(BaseModel):
     """Configuration for Language Models"""
     api_key: str
-    model_name: str
+    llm_provider: LLMProviderType
     model_id: str
     temperature: float = 0.7
     max_tokens: int = 2048
@@ -50,7 +51,7 @@ class AWSConfig(BaseModel):
     storage_type: str
     endpoint_url: str
 
-class Settings(BaseSettings):
+class Settings:
     """Main application settings"""
     QDRANT_URL: str = os.getenv('QDRANT_URL', "http://qdrant:6333")
     GOOGLE_API_KEY: str = os.getenv('GOOGLE_API_KEY', '')
@@ -78,7 +79,7 @@ class Settings(BaseSettings):
     # LLM configurations
     OPENAI_CONFIG: LLMConfig = LLMConfig(
         api_key=os.getenv('OPENAI_API_KEY', ''),
-        model_name="GPT",
+        llm_provider=LLMProviderType.OPENAI,
         model_id="gpt-3.5-turbo",
         temperature=0.7,
         max_tokens=2048,
@@ -87,7 +88,7 @@ class Settings(BaseSettings):
     
     GEMINI_CONFIG: LLMConfig = LLMConfig(
         api_key=os.getenv('GOOGLE_API_KEY', ''),
-        model_name="Gemini",
+        llm_provider=LLMProviderType.GOOGLE,
         model_id="models/gemini-2.0-flash",
         temperature=0.8,
         max_tokens=2048,
@@ -96,7 +97,7 @@ class Settings(BaseSettings):
     
     CLAUDE_CONFIG: LLMConfig = LLMConfig(
         api_key=os.getenv('ANTHROPIC_API_KEY', ''),
-        model_name="Claude",
+        llm_provider=LLMProviderType.ANTHROPIC,
         model_id="claude-3-haiku-20240307",
         temperature=0.7,
         max_tokens=4000,
@@ -105,3 +106,13 @@ class Settings(BaseSettings):
     
     class Config:
         env_file = ".env"
+global_config = Settings()
+def get_llm_config(llm_type: LLMProviderType) -> LLMConfig:
+    if llm_type == LLMProviderType.OPENAI:
+        return global_config.OPENAI_CONFIG
+    elif llm_type == LLMProviderType.GOOGLE:
+        return global_config.GEMINI_CONFIG
+    elif llm_type == LLMProviderType.ANTHROPIC:
+        return global_config.CLAUDE_CONFIG
+    else:
+        raise ValueError(f"Unsupported LLM type: {llm_type}")

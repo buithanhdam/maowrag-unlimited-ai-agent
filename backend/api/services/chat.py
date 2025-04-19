@@ -1,14 +1,12 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+from typing import List, Optional
 from llama_index.core.llms import ChatMessage
 from src.db.models import KnowledgeBase,Conversation, Message, AgentConversation, Agent, LLMConfig, Communication, CommunicationConversation
 from src.enums import ( LLMProviderType, MessageType, RoleType, AgentType)
 from api.schemas.chat import (
-    CommunicationConversationCreate, ConversationCreate, ConversationUpdate, ConversationResponse,
-    MessageCreate, MessageResponse
+    CommunicationConversationCreate, ConversationCreate, ConversationUpdate,MessageCreate
 )
 from src.agents import ReActAgent, AgentOptions, ReflectionAgent, ManagerAgent, BaseAgent
 from src.llm import UnifiedLLM # Import other LLM providers as needed
@@ -18,9 +16,9 @@ class ChatService:
     def create_llm_instance(llm_config: LLMConfig):
         """Create LLM instance based on provider and config"""
         provider = llm_config.llm_foundations.provider
-        if provider == LLMProviderType.GEMINI:
+        if provider == LLMProviderType.GOOGLE:
             return UnifiedLLM(
-                model_name= LLMProviderType.GEMINI.value,
+                llm_provider= LLMProviderType.GOOGLE,
                 model_id= llm_config.llm_foundations.model_id,
                 temperature= llm_config.temperature,
                 max_tokens= llm_config.max_tokens,

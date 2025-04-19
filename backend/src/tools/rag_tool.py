@@ -1,6 +1,7 @@
 from llama_index.core.tools import FunctionTool
 from src.db.models import KnowledgeBase,RAGConfig
-from src.config import Settings
+from src.config import global_config
+from src.enums import LLMProviderType
 from typing import List
 from src.logger import get_formatted_logger
 logger = get_formatted_logger(__file__)
@@ -10,7 +11,6 @@ class RAGTool:
     @staticmethod
     def create_rag_tool_for_knowledge_base(knowledge_base: KnowledgeBase) -> FunctionTool:
         """Create a RAG function tool for a specific knowledge base"""
-        settings = Settings()
         
         # Get RAG config from knowledge base
         rag_config:RAGConfig = knowledge_base.rag_config
@@ -29,8 +29,8 @@ class RAGTool:
             
             rag = RAGManager.create_rag(
                 rag_type=rag_type,
-                qdrant_url=settings.QDRANT_URL,
-                gemini_api_key=settings.GEMINI_CONFIG.api_key,
+                vector_db_url=global_config.QDRANT_URL,
+                llm_type= LLMProviderType.GOOGLE,
                 chunk_size=rag_config.chunk_size,
                 chunk_overlap=rag_config.chunk_overlap,
             )

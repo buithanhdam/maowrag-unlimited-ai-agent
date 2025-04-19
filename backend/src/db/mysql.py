@@ -1,10 +1,12 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from src.config import Settings
+from src.config import global_config
 
-settings = Settings()
-
-SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{settings.MYSQL_USER}:{settings.MYSQL_PASSWORD}@{settings.MYSQL_HOST}:{settings.MYSQL_PORT}/{settings.MYSQL_DB}"
+SQLALCHEMY_DATABASE_URL = f"""mysql+pymysql://{global_config.MYSQL_USER}:
+{global_config.MYSQL_PASSWORD}@
+{global_config.MYSQL_HOST}:
+{global_config.MYSQL_PORT}/
+{global_config.MYSQL_DB}"""
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

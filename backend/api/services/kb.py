@@ -8,36 +8,24 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from datetime import datetime
 
-from api.schemas.kb import (
-    KnowledgeBaseCreate, 
-    KnowledgeBaseResponse, 
-    KnowledgeBaseUpdate,
-    DocumentCreate,
-    DocumentResponse
-)
+from api.schemas.kb import (KnowledgeBaseCreate, KnowledgeBaseResponse, KnowledgeBaseUpdate,DocumentCreate,DocumentResponse)
 from src.rag.base import BaseRAG
-from src.db.models import (
-    KnowledgeBase,
-    RAGConfig,
-    Document,
-    DocumentStatusType,
-    DocumentChunk
-)
+from src.db.models import (KnowledgeBase,RAGConfig,Document,DocumentChunk)
+from src.enums import DocumentStatusType, LLMProviderType
 from src.db.qdrant import QdrantVectorDatabase
 from src.db.aws import S3Client, get_aws_s3_client
 from src.readers import parse_multiple_files, FileExtractor
 from src.rag.rag_manager import RAGManager
-from src.config import Settings
+from src.config import global_config
 from src.logger import get_formatted_logger
 
 logger = get_formatted_logger(__file__)
 
 class KnowledgeBaseService:
-    def __init__(self, settings: Settings):
-        self.settings = settings
+    def __init__(self):
+        self.global_config = global_config
         self.file_extractor = FileExtractor()
-        self.qdrant_client = QdrantVectorDatabase(url=settings.QDRANT_URL)
-        self.settings = settings
+        self.qdrant_client = QdrantVectorDatabase(url=global_config.QDRANT_URL)
         self.s3_client = get_aws_s3_client()
         
     async def create_knowledge_base(
@@ -167,8 +155,8 @@ class KnowledgeBaseService:
         # Initialize RAG manager
         rag_manager = RAGManager.create_rag(
             rag_type=rag_config.rag_type,
-            qdrant_url=self.settings.QDRANT_URL,
-            gemini_api_key=self.settings.GEMINI_CONFIG.api_key,
+            vector_db_url=self.global_config.QDRANT_URL,
+            llm_type=LLMProviderType.GOOGLE,
             chunk_size=rag_config.chunk_size,
             chunk_overlap=rag_config.chunk_overlap,
         )

@@ -15,7 +15,7 @@ class AgentType(enum.Enum):
 
 class LLMProviderType(enum.Enum):
     OPENAI = "openai"
-    GEMINI = "gemini"
+    GOOGLE = "google"
     ANTHROPIC = "anthropic"
 
 class MessageType(enum.Enum):
