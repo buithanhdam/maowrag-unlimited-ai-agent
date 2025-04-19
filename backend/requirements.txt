@@ -26,3 +26,5 @@ boto3==1.36.24
 fastembed==0.6.0
 mcp
 tavily-python==0.5.1
+langchain-community==0.3.21
+arxiv==2.2.0

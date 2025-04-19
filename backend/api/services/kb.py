@@ -20,7 +20,7 @@ from src.db.models import (
     KnowledgeBase,
     RAGConfig,
     Document,
-    DocumentStatus,
+    DocumentStatusType,
     DocumentChunk
 )
 from src.db.qdrant import QdrantVectorDatabase
@@ -228,7 +228,7 @@ class KnowledgeBaseService:
                 name=file_name,
                 source=file_path_in_s3,
                 extension=extension,
-                status=DocumentStatus.UPLOADED,
+                status=DocumentStatusType.UPLOADED,
                 extra_info=doc_data.extra_info,
             )
             
@@ -273,7 +273,7 @@ class KnowledgeBaseService:
         rag_manager = await self.get_rag_from_kb(session, kb_id)
         
         # Update document status
-        doc.status = DocumentStatus.PENDING
+        doc.status = DocumentStatusType.PENDING
         session.commit()
         
         temp_file = None
@@ -290,7 +290,7 @@ class KnowledgeBaseService:
             )
             
             # Update status to processing
-            doc.status = DocumentStatus.PROCESSING
+            doc.status = DocumentStatusType.PROCESSING
             session.commit()
             
             # Download file from S3
@@ -337,7 +337,7 @@ class KnowledgeBaseService:
                     session.add(chunk)
             
             # Update document status
-            doc.status = DocumentStatus.PROCESSED
+            doc.status = DocumentStatusType.PROCESSED
             session.commit()
             session.refresh(doc)
             
@@ -345,7 +345,7 @@ class KnowledgeBaseService:
             
         except Exception as e:
             # Update document status to failed
-            doc.status = DocumentStatus.FAILED
+            doc.status = DocumentStatusType.FAILED
             session.commit()
             
             logger.error(f"Error processing document: {str(e)}")

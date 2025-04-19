@@ -4,23 +4,23 @@ from fastapi import HTTPException
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from llama_index.core.llms import ChatMessage
-from src.db.models import KnowledgeBase, RoleType,Conversation, Message,AgentType, AgentConversation, Agent, LLMConfig, LLMProvider, Communication, CommunicationConversation, MessageType
+from src.db.models import KnowledgeBase,Conversation, Message, AgentConversation, Agent, LLMConfig, Communication, CommunicationConversation
+from src.enums import ( LLMProviderType, MessageType, RoleType, AgentType)
 from api.schemas.chat import (
     CommunicationConversationCreate, ConversationCreate, ConversationUpdate, ConversationResponse,
     MessageCreate, MessageResponse
 )
 from src.agents import ReActAgent, AgentOptions, ReflectionAgent, ManagerAgent, BaseAgent
 from src.llm import UnifiedLLM # Import other LLM providers as needed
-from src.tools.tool_manager import tool_manager
 
 class ChatService:
     @staticmethod
     def create_llm_instance(llm_config: LLMConfig):
         """Create LLM instance based on provider and config"""
         provider = llm_config.llm_foundations.provider
-        if provider == LLMProvider.GEMINI:
+        if provider == LLMProviderType.GEMINI:
             return UnifiedLLM(
-                model_name= LLMProvider.GEMINI.value,
+                model_name= LLMProviderType.GEMINI.value,
                 model_id= llm_config.llm_foundations.model_id,
                 temperature= llm_config.temperature,
                 max_tokens= llm_config.max_tokens,
@@ -39,11 +39,11 @@ class ChatService:
         
         # setup agent with kb rag config setup multi tool
         kbs : List[KnowledgeBase] = agent.knowledge_bases    
-        from src.tools.rag_tool import RAGToolManager
-        rag_tools = RAGToolManager.create_rag_tools_for_agent(kbs)
-        simple_tools = tool_manager.get_all_tools()
+        from src.tools.rag_tool import RAGTool
+        rag_tools = RAGTool.create_rag_tools_for_agent(kbs)
+        # simple_tools = tool_manager.get_all_tools()
         
-        tools = rag_tools + simple_tools
+        tools = rag_tools
 
         llm_config = db.query(LLMConfig).filter(LLMConfig.id == agent.config_id).first()
         if not llm_config:

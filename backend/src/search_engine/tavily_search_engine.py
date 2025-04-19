@@ -15,7 +15,7 @@ class TavilyEngine(BaseSearchEngine):
         try:
             if not api_key:
                 self.logger.warning("API key not provided, initializing Tavily client with base api key from .env")
-                api_key = os.getenv("TAVILY_API_KEY")
+                api_key = os.environ.get("TAVILY_API_KEY")
             self.client = TavilyClient(api_key=api_key)
             self.logger.info("Tavily client initialized successfully")
         except Exception as e:
@@ -189,22 +189,22 @@ class TavilyEngine(BaseSearchEngine):
 
 
 # Ví dụ sử dụng
-# if __name__ == "__main__":
-#     try:
-#         # Thay thế API key thực tế
-#         tavily_client = TavilyEngine()
+if __name__ == "__main__":
+    try:
+        # Thay thế API key thực tế
+        tavily_client = TavilyEngine()
         
-#         # Ví dụ search
-#         search_results = tavily_client.search("who is leonel messi?", max_results=5)
-#         print(search_results["data"]["results"])
+        # Ví dụ search
+        search_results = tavily_client.search("who is leonel messi?", max_results=5)
+        print(search_results["data"]["results"])
         
-#         # # Ví dụ qna_search
-#         qna_results = tavily_client.qna_search("who is leonel messi?")
-#         print(qna_results)
+        # # Ví dụ qna_search
+        qna_results = tavily_client.qna_search("who is leonel messi?")
+        print(qna_results)
         
-#         # # Ví dụ extract
-#         extract_results = tavily_client.extract("https://vi.wikipedia.org/wiki/Lionel_Messi")
-#         print(extract_results["data"]["results"])
+        # # Ví dụ extract
+        extract_results = tavily_client.extract("https://vi.wikipedia.org/wiki/Lionel_Messi")
+        print(extract_results["data"]["results"])
         
-#     except Exception as e:
-#         print(f"Error in example: {str(e)}")
+    except Exception as e:
+        print(f"Error in example: {str(e)}")

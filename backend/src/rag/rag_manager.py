@@ -6,7 +6,7 @@ from .naive_rag import NaiveRAG
 from .hybrid_rag import HybridRAG
 from.hyde_rag import HyDERAG
 from .fusion_rag import FusionRAG
-from src.db.models import RAGType
+from src.enums import RAGType
 logger = get_formatted_logger(__file__)
 
 

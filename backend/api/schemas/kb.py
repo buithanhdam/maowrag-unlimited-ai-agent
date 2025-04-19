@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
-from src.db.models import DocumentStatus, RAGType
+from src.db.models import DocumentStatusType, RAGType
 
 class RagConfigResponse(BaseModel):
     id: int
@@ -53,7 +53,7 @@ class DocumentResponse(BaseModel):
     name: str
     source: Optional[str]
     extension: str
-    status: DocumentStatus
+    status: DocumentStatusType
     extra_info: Optional[Dict[str, Any]]
     created_at: datetime
     updated_at: Optional[datetime]

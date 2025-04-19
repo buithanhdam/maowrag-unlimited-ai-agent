@@ -4,12 +4,11 @@ from enum import Enum
 from src.logger import get_formatted_logger
 from .base import BaseSearchEngine
 from .tavily_search_engine import TavilyEngine
-
-logger = get_formatted_logger(__file__)
-
-class SearchEngineType(Enum):
-    TAVILY = "Tavily"
-    # Add other search engine types here
+from .arxiv_search_engine import ArXivSearchEngine
+from .wikipedia_search_engine import WikipediaSearchEngine
+from src.enums import SearchEngineType
+logger = get_formatted_logger(__file__)  
+# Add other search engine types here
 
 class SearchEngineManager:
     """
@@ -17,6 +16,8 @@ class SearchEngineManager:
     """
     _search_engine_implementations = {
         SearchEngineType.TAVILY: TavilyEngine,
+        SearchEngineType.ARXIV: ArXivSearchEngine,
+        SearchEngineType.WIKI: WikipediaSearchEngine,
     }
 
     @classmethod
@@ -43,7 +44,7 @@ class SearchEngineManager:
     def create_search_engine(
         cls,
         search_engine_type: SearchEngineType,
-        api_key: str,
+        api_key: str = None,
         **kwargs
     ) -> BaseSearchEngine:
         """
