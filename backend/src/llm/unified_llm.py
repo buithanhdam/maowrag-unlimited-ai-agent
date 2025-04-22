@@ -9,7 +9,8 @@ from pydantic_settings import BaseSettings
 # from llama_index.llms.anthropic import Anthropic
 from llama_index.llms.gemini import Gemini
 # from llama_index.llms.openai import OpenAI
-from src.config import Settings
+from src.config import global_config, get_llm_config
+from src.enums import LLMProviderType
 
 logger = get_formatted_logger(__file__)
 
@@ -17,58 +18,37 @@ class UnifiedLLM(BaseLLM):
     def __init__(
         self, 
         api_key: str = None, 
-        model_name: str = "gemini", 
+        llm_provider: LLMProviderType = LLMProviderType.GOOGLE, 
         model_id: str = None, 
         temperature: float = None, 
         max_tokens: int = None, 
         system_prompt: str = None,
     ):
+        LLM_CONFIG = get_llm_config(llm_type=llm_provider)
         super().__init__(
-            api_key=api_key,
-            model_name=model_name,
-            model_id=model_id,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            system_prompt=system_prompt
+            api_key=api_key or LLM_CONFIG.api_key,
+            llm_provider=llm_provider or LLM_CONFIG.llm_provider,
+            model_id=model_id or LLM_CONFIG.model_id,
+            temperature=temperature or LLM_CONFIG.temperature,
+            max_tokens=max_tokens or LLM_CONFIG.max_tokens,
+            system_prompt=system_prompt or LLM_CONFIG.system_prompt,
         )
         self._initialize_model()
 
     def _initialize_model(self) -> None:
         try:
             
-            if self.model_name.lower() == "gemini":
-                global_settings = Settings()
+            if self.llm_provider == LLMProviderType.GOOGLE:
                 self.model = Gemini(
-                    api_key=self.api_key if self.api_key else global_settings.GEMINI_CONFIG.api_key,
-                    model=self.model_id if self.model_id else global_settings.GEMINI_CONFIG.model_id,
-                    temperature=self.temperature if self.temperature else global_settings.GEMINI_CONFIG.temperature,
-                    max_tokens=self.max_tokens if self.max_tokens else global_settings.GEMINI_CONFIG.max_tokens,
-                    additional_kwargs={
-                        'generation_config': {
-                            'temperature': self.temperature if self.temperature else global_settings.GEMINI_CONFIG.temperature,
-                            'top_p': 0.8,
-                            'top_k': 40,
-                        }
-                    },
+                    api_key=self.api_key,
+                    model=self.model_id,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
                 )
-            # elif self.model_name == "claude":
-            #     self.model = Anthropic(
-            #         api_key=self.api_key,
-            #         model=self.model_id,
-            #         temperature=self.temperature,
-            #         max_tokens=self.max_tokens
-            #     )
-            # elif self.model_name == "openai":
-            #     self.model = OpenAI(
-            #         api_key=self.api_key,
-            #         model=self.model_id,
-            #         temperature=self.temperature,
-            #         max_tokens=self.max_tokens
-            #     )
             else:
-                raise ValueError(f"Unsupported model type: {self.model_name}")
+                raise ValueError(f"Unsupported model type: {self.llm_provider}")
         except Exception as e:
-            logger.error(f"Failed to initialize {self.model_name} model: {str(e)}")
+            logger.error(f"Failed to initialize {self.llm_provider} model: {str(e)}")
             raise
 
     def _prepare_messages(
@@ -97,7 +77,7 @@ class UnifiedLLM(BaseLLM):
             else:
                 return response.message.content
         except Exception as e:
-            logger.error(f"Error extracting response from {self.model_name}: {str(e)}")
+            logger.error(f"Error extracting response from {self.llm_provider}: {str(e)}")
             return response.message.content
 
     def chat(
@@ -110,7 +90,7 @@ class UnifiedLLM(BaseLLM):
             response = self.model.chat(messages)
             return self._extract_response(response)
         except Exception as e:
-            logger.error(f"Error in {self.model_name} chat: {str(e)}")
+            logger.error(f"Error in {self.llm_provider} chat: {str(e)}")
             raise
 
     async def achat(
@@ -123,7 +103,7 @@ class UnifiedLLM(BaseLLM):
             response = await self.model.achat(messages)
             return self._extract_response(response)
         except Exception as e:
-            logger.error(f"Error in {self.model_name} async chat: {str(e)}")
+            logger.error(f"Error in {self.llm_provider} async chat: {str(e)}")
             raise
 
     def stream_chat(
@@ -137,7 +117,7 @@ class UnifiedLLM(BaseLLM):
             for response in response_stream:
                 yield self._extract_response(response)
         except Exception as e:
-            logger.error(f"Error in {self.model_name} stream chat: {str(e)}")
+            logger.error(f"Error in {self.llm_provider} stream chat: {str(e)}")
             raise
 
     async def astream_chat(
@@ -159,7 +139,7 @@ class UnifiedLLM(BaseLLM):
                 yield self._extract_response(response)
                 
         except Exception as e:
-            logger.error(f"Error in {self.model_name} async stream chat: {str(e)}")
+            logger.error(f"Error in {self.llm_provider} async stream chat: {str(e)}")
             raise
 
     @asynccontextmanager

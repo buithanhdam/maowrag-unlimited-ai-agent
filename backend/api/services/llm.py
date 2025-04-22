@@ -17,7 +17,6 @@ class LLMService:
         try:
             db_foundation = LLMFoundation(
                 provider=foundation.provider,
-                model_name=foundation.model_name,
                 model_id=foundation.model_id,
                 description=foundation.description,
                 capabilities=foundation.capabilities

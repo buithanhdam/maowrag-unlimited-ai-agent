@@ -1,22 +1,29 @@
+# api/schemas/agent.py
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from src.db.models import AgentType
 from api.schemas.kb import KnowledgeBaseResponse
-class AgentCreate(BaseModel):
+
+class AgentBase(BaseModel):
+    """Base model for Agent"""
     name: str
-    foundation_id: Optional[int] = None
     agent_type: AgentType
-    config_id: Optional[int] = None
-    kb_ids: Optional[List[int]] = None
     description: Optional[str] = None
     configuration: Optional[Dict[str, Any]] = None
     tools: Optional[List[str]] = None
 
+class AgentCreate(AgentBase):
+    """Create model for Agent"""
+    foundation_id: Optional[int] = None
+    config_id: Optional[int] = None
+    kb_ids: Optional[List[int]] = None
+
 class AgentUpdate(BaseModel):
+    """Update model for Agent"""
     name: Optional[str] = None
     foundation_id: Optional[int] = None
-    agent_type: Optional[str] = None
+    agent_type: Optional[AgentType] = None
     config_id: Optional[int] = None
     kb_ids: Optional[List[int]] = None
     description: Optional[str] = None
@@ -24,16 +31,12 @@ class AgentUpdate(BaseModel):
     tools: Optional[List[str]] = None
     is_active: Optional[bool] = None
 
-class AgentResponse(BaseModel):
+class AgentResponse(AgentBase):
+    """Response model for Agent"""
     id: int
-    name: str
     foundation_id: int
-    config_id:int
-    agent_type: str
-    description: Optional[str]
+    config_id: int
     created_at: datetime
     updated_at: Optional[datetime]
     is_active: bool
-    configuration: Optional[Dict[str, Any]]
-    tools: Optional[List[str]]
     knowledge_bases: Optional[List[KnowledgeBaseResponse]]

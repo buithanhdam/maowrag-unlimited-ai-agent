@@ -2,58 +2,11 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON, Enum, Boolean, Float, create_engine, Index
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.sql import func
-import enum
-from src.config import Settings
+from src.enums import ( AgentType, CommunicationRoleType, LLMProviderType, RoleType, MessageType, DocumentStatusType, ToolType, RAGType )
+from src.config import global_config
 
-settings = Settings()
 Base = declarative_base()
 
-class CommunicationRole(enum.Enum):
-    MANAGER = "manager"
-    MEMBER = "member"
-
-class RoleType(enum.Enum):
-    USER = "user"
-    ASSISTANT = "assistant"
-    SYSTEM = "system"
-
-class AgentType(enum.Enum):
-    REACT = "react"
-    REFLECTION = "reflection"
-    # Add more agent types as needed
-
-class LLMProvider(enum.Enum):
-    OPENAI = "openai"
-    GEMINI = "gemini"
-    ANTHROPIC = "anthropic"
-
-class MessageType(enum.Enum):
-    COMMUNICATION = "communication"
-    AGENT = "agent"
-
-class DocumentStatus(enum.Enum):
-    UPLOADED = "uploaded"
-    PENDING = "pending"
-    PROCESSING = "processing"
-    PROCESSED = "processed"
-    FAILED = "failed"
-
-class ToolType(enum.Enum):
-    SEARCH = "search"
-    CALCULATOR = "calculator"
-    CODE_INTERPRETER = "code_interpreter"
-    WEB_BROWSER = "web_browser"
-    FILE_OPERATION = "file_operation"
-    API_CALL = "api_call"
-    CUSTOM = "custom"
-
-class RAGType(enum.Enum):
-    NORMAL = "normal_rag"
-    HYBRID = "hybrid_rag"
-    CONTEXTUAL = "contextual_rag"
-    FUSION = "fusion_rag"
-    HYDE = "hyde_rag"
-    NAIVE = "naive_rag"
 class Agent(Base):
     __tablename__ = "agents"
     
@@ -96,7 +49,7 @@ class CommunicationAgentMember(Base):
     
     communication_id = Column(Integer, ForeignKey("communications.id"), primary_key=True)
     agent_id = Column(Integer, ForeignKey("agents.id"), primary_key=True)
-    role = Column(Enum(CommunicationRole))  # e.g., "leader", "member"
+    role = Column(Enum(CommunicationRoleType))  # e.g., "leader", "member"
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class CommunicationConversation(Base):
@@ -110,8 +63,7 @@ class LLMFoundation(Base):
     __tablename__ = "llm_foundations"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    provider = Column(Enum(LLMProvider), nullable=False)
-    model_name = Column(String(100), nullable=False)
+    provider = Column(Enum(LLMProviderType), nullable=False)
     model_id = Column(String(100), nullable=False, unique=True)
     description = Column(Text)
     capabilities = Column(JSON)  # Store model capabilities
@@ -221,7 +173,7 @@ class Document(Base):
     extension = Column(String(50))
     original_content = Column(Text, nullable=True)
     processed_content = Column(Text, nullable=True)
-    status = Column(Enum(DocumentStatus), default=DocumentStatus.PENDING)
+    status = Column(Enum(DocumentStatusType), default=DocumentStatusType.PENDING)
     extra_info = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -276,7 +228,11 @@ class AgentTool(Base):
     tool_id = Column(Integer, ForeignKey("tools.id"), primary_key=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{settings.MYSQL_USER}:{settings.MYSQL_PASSWORD}@{settings.MYSQL_HOST}:{settings.MYSQL_PORT}/{settings.MYSQL_DB}"
+SQLALCHEMY_DATABASE_URL = f"""mysql+pymysql://{global_config.MYSQL_USER}:
+{global_config.MYSQL_PASSWORD}@
+{global_config.MYSQL_HOST}:
+{global_config.MYSQL_PORT}/
+{global_config.MYSQL_DB}"""
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 Base.metadata.create_all(engine)

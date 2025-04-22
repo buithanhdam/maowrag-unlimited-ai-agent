@@ -13,8 +13,8 @@ from llama_index.core.node_parser import SimpleNodeParser
 from llama_index.core.schema import NodeWithScore
 from src.db.qdrant import QdrantVectorDatabase
 from src.logger import get_formatted_logger
-from llama_index.core.node_parser import SentenceSplitter
-from src.config import QdrantPayload
+from src.config import QdrantPayload, get_llm_config
+from src.enums import LLMProviderType
 logger = get_formatted_logger(__file__)
 
 class BaseRAG(ABC):
@@ -23,26 +23,19 @@ class BaseRAG(ABC):
     """
     def __init__(
         self,
-        qdrant_url: str,
-        gemini_api_key: str,
+        vector_db_url: str,
+        llm_type: LLMProviderType = LLMProviderType.GOOGLE,
         chunk_size: int = 512,
         chunk_overlap: int = 64,
     ):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        
+        self.vector_db_url = vector_db_url
+        self.llm_type = llm_type
+        self.llm_config = get_llm_config(llm_type)
         # Initialize Gemini models
-        self.llm = Gemini(
-            api_key=gemini_api_key,
-            temperature=0.1
-        )
-        self.dense_embedding_model = GeminiEmbedding(
-            api_key=gemini_api_key,
-            model_name="models/text-embedding-004",
-           # gemini-embedding-exp-03-07 
-            output_dimensionality=768
-        )
-        self.sparse_embedding_model = SparseTextEmbedding(model_name="Qdrant/bm25",lazy_load=True)
+        self.initialize_llm()
+        self.initialize_embedding_model()
         
         # Set global settings
         Settings.llm = self.llm
@@ -54,9 +47,42 @@ class BaseRAG(ABC):
         self.parser = SimpleNodeParser.from_defaults()
         
         # Initialize Qdrant client
-        self.qdrant_client = QdrantVectorDatabase(url=qdrant_url)
+        self.initialize_vector_db_client()
         
         logger.info(f"Initialized {self.__class__.__name__}")
+    def initialize_llm(self):
+        """
+        Initialize LLM model
+        """
+        if self.llm_type == LLMProviderType.GOOGLE:
+            self.llm = Gemini(
+                api_key=self.llm_config.api_key,
+                temperature=0.1
+            )
+        else:
+            raise ValueError(f"Unsupported LLM type: {self.llm_type}")
+        
+    def initialize_embedding_model(self):
+        """
+        Initialize embedding model
+        """
+        self.sparse_embedding_model = SparseTextEmbedding(model_name="Qdrant/bm25",lazy_load=True)
+        if self.llm_type == LLMProviderType.GOOGLE:
+            self.dense_embedding_model = GeminiEmbedding(
+                api_key=self.llm_config.api_key,
+                model_name="models/text-embedding-004",
+                output_dimensionality=768
+            )
+        else:
+            raise ValueError(f"Unsupported embedding model type: {self.llm_type}")
+        
+    def initialize_vector_db_client(self):
+        """
+        Initialize Vector Database client
+        """
+        self.qdrant_client = QdrantVectorDatabase(url=self.vector_db_url)
+        logger.info(f"Initialized Qdrant client with URL: {self.vector_db_url}")
+        
     def split_document(
         self,
         document: Document,
@@ -80,7 +106,7 @@ class BaseRAG(ABC):
                 }
             )
             chunks.append(chunk)
-            
+        logger.info(f"Split document into {len(chunks)} chunks")
         return chunks
     def process_document(
         self,

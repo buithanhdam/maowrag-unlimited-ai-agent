@@ -1,14 +1,16 @@
 from llama_index.core.tools import FunctionTool
-from src.db.models import KnowledgeBase,RAGConfig, RAGType
-from src.config import Settings
+from src.db.models import KnowledgeBase,RAGConfig
+from src.config import global_config
+from src.enums import LLMProviderType
 from typing import List
 from src.logger import get_formatted_logger
 logger = get_formatted_logger(__file__)
-class RAGToolManager:
+
+RAG_DESCRIPTION = """Search through business knowledge base return relevant business information"""
+class RAGTool:
     @staticmethod
     def create_rag_tool_for_knowledge_base(knowledge_base: KnowledgeBase) -> FunctionTool:
         """Create a RAG function tool for a specific knowledge base"""
-        settings = Settings()
         
         # Get RAG config from knowledge base
         rag_config:RAGConfig = knowledge_base.rag_config
@@ -25,10 +27,10 @@ class RAGToolManager:
             """
             from src.rag.rag_manager import RAGManager
             
-            rag_manager = RAGManager.create_rag(
+            rag = RAGManager.create_rag(
                 rag_type=rag_type,
-                qdrant_url=settings.QDRANT_URL,
-                gemini_api_key=settings.GEMINI_CONFIG.api_key,
+                vector_db_url=global_config.QDRANT_URL,
+                llm_type= LLMProviderType.GOOGLE,
                 chunk_size=rag_config.chunk_size,
                 chunk_overlap=rag_config.chunk_overlap,
             )
@@ -36,7 +38,7 @@ class RAGToolManager:
             # Use knowledge_base.specific_id as collection name or other identifier
             collection_name = knowledge_base.specific_id
             
-            return rag_manager.search(
+            return rag.search(
                 query=query, 
                 collection_name=collection_name,
                 limit=limit
@@ -53,6 +55,6 @@ class RAGToolManager:
     def create_rag_tools_for_agent(knowledge_bases: List[KnowledgeBase]) -> List[FunctionTool]:
         """Create RAG tools for all knowledge bases associated with an agent"""
         return [
-            RAGToolManager.create_rag_tool_for_knowledge_base(kb) 
+            RAGTool.create_rag_tool_for_knowledge_base(kb) 
             for kb in knowledge_bases
         ]

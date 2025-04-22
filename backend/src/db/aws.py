@@ -7,20 +7,19 @@ from fastapi import Depends
 from typing import Annotated
 from botocore.exceptions import ClientError
 from tenacity import retry, stop_after_attempt, wait_fixed, after_log, before_sleep_log
-from src.config import Settings
+from src.config import global_config, Settings
 sys.path.append(str(Path(__file__).parent.parent.parent.parent))
 from urllib.parse import urlparse
 logger = get_formatted_logger(__file__)
 
 def get_aws_s3_client(
 ) -> "S3Client":
-    settings =Settings()
     return S3Client(
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        region_name=settings.AWS_REGION_NAME,
-        storage_type=settings.AWS_STORAGE_TYPE,
-        endpoint_url=settings.AWS_ENDPOINT_URL,
+        aws_access_key_id=global_config.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=global_config.AWS_SECRET_ACCESS_KEY,
+        region_name=global_config.AWS_REGION_NAME,
+        storage_type=global_config.AWS_STORAGE_TYPE,
+        endpoint_url=global_config.AWS_ENDPOINT_URL,
     )
 
 
@@ -67,13 +66,13 @@ class S3Client:
         logger.info("S3Client initialized successfully!")
 
     @classmethod
-    def from_setting(cls, settings: Settings) -> "S3Client":
+    def from_setting(cls, global_config: Settings) -> "S3Client":
         return cls(
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        region_name=settings.AWS_REGION_NAME,
-        storage_type=settings.AWS_STORAGE_TYPE,
-        endpoint_url=settings.AWS_ENDPOINT_URL,
+            aws_access_key_id=global_config.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=global_config.AWS_SECRET_ACCESS_KEY,
+        region_name=global_config.AWS_REGION_NAME,
+        storage_type=global_config.AWS_STORAGE_TYPE,
+        endpoint_url=global_config.AWS_ENDPOINT_URL,
         )
 
     def test_connection(self):
