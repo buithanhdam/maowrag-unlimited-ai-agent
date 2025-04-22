@@ -1,7 +1,5 @@
 # config.py
-import enum
 from pydantic import BaseModel
-from pydantic_settings import BaseSettings
 import os
 import dotenv
 
@@ -53,32 +51,32 @@ class AWSConfig(BaseModel):
 
 class Settings:
     """Main application settings"""
-    QDRANT_URL: str = os.getenv('QDRANT_URL', "http://qdrant:6333")
-    GOOGLE_API_KEY: str = os.getenv('GOOGLE_API_KEY', '')
-    BACKEND_API_URL: str = os.getenv('BACKEND_API_URL', 'http://localhost:8000')
+    QDRANT_URL: str = os.environ.get('QDRANT_URL', "http://qdrant:6333")
+    GOOGLE_API_KEY: str = os.environ.get('GOOGLE_API_KEY', '')
+    BACKEND_API_URL: str = os.environ.get('BACKEND_API_URL', 'http://localhost:8000')
     
-    MYSQL_USER : str=os.getenv('MYSQL_USER', 'user')
-    MYSQL_PASSWORD : str=os.getenv('MYSQL_PASSWORD', '1')
-    MYSQL_ROOT_PASSWORD : str=os.getenv('MYSQL_ROOT_PASSWORD', '1')
-    MYSQL_HOST : str=os.getenv('MYSQL_HOST', 'mysql')
-    MYSQL_PORT : str=os.getenv('MYSQL_PORT', '3306')
-    MYSQL_DB : str=os.getenv('MYSQL_DB', 'ragagent')
-    MYSQL_ALLOW_EMPTY_PASSWORD: str=os.getenv('MYSQL_ALLOW_EMPTY_PASSWORD', 'yes')
+    MYSQL_USER : str=os.environ.get('MYSQL_USER', 'user')
+    MYSQL_PASSWORD : str=os.environ.get('MYSQL_PASSWORD', '1')
+    MYSQL_ROOT_PASSWORD : str=os.environ.get('MYSQL_ROOT_PASSWORD', 'root')
+    MYSQL_HOST : str=os.environ.get('MYSQL_HOST', 'mysql')
+    MYSQL_PORT : str=os.environ.get('MYSQL_PORT', '3306')
+    MYSQL_DB : str=os.environ.get('MYSQL_DB', 'ragagent')
+    MYSQL_ALLOW_EMPTY_PASSWORD: str=os.environ.get('MYSQL_ALLOW_EMPTY_PASSWORD', 'yes')
     
     # Component configurations
     READER_CONFIG: ReaderConfig = ReaderConfig()
     RAG_CONFIG: RAGConfig = RAGConfig()
     
-    AWS_ACCESS_KEY_ID:str=os.getenv('AWS_ACCESS_KEY_ID', ''),
-    AWS_SECRET_ACCESS_KEY:str=os.getenv('AWS_SECRET_ACCESS_KEY', ''),
-    AWS_REGION_NAME:str=os.getenv('AWS_REGION_NAME', ''),
-    AWS_STORAGE_TYPE:str=os.getenv('AWS_STORAGE_TYPE', ''),
+    AWS_ACCESS_KEY_ID:str=os.environ.get('AWS_ACCESS_KEY_ID', ''),
+    AWS_SECRET_ACCESS_KEY:str=os.environ.get('AWS_SECRET_ACCESS_KEY', ''),
+    AWS_REGION_NAME:str=os.environ.get('AWS_REGION_NAME', ''),
+    AWS_STORAGE_TYPE:str=os.environ.get('AWS_STORAGE_TYPE', ''),
     AWS_ENDPOINT_URL:str="https://s3.ap-southeast-2.amazonaws.com"
     
-    TAVILY_API_KEY:str = os.getenv('TAVILY_API_KEY', '')
+    TAVILY_API_KEY:str = os.environ.get('TAVILY_API_KEY', '')
     # LLM configurations
     OPENAI_CONFIG: LLMConfig = LLMConfig(
-        api_key=os.getenv('OPENAI_API_KEY', ''),
+        api_key=os.environ.get('OPENAI_API_KEY', ''),
         llm_provider=LLMProviderType.OPENAI,
         model_id="gpt-3.5-turbo",
         temperature=0.7,
@@ -87,7 +85,7 @@ class Settings:
     )
     
     GEMINI_CONFIG: LLMConfig = LLMConfig(
-        api_key=os.getenv('GOOGLE_API_KEY', ''),
+        api_key=os.environ.get('GOOGLE_API_KEY', ''),
         llm_provider=LLMProviderType.GOOGLE,
         model_id="models/gemini-2.0-flash",
         temperature=0.8,
@@ -96,7 +94,7 @@ class Settings:
     )
     
     CLAUDE_CONFIG: LLMConfig = LLMConfig(
-        api_key=os.getenv('ANTHROPIC_API_KEY', ''),
+        api_key=os.environ.get('ANTHROPIC_API_KEY', ''),
         llm_provider=LLMProviderType.ANTHROPIC,
         model_id="claude-3-haiku-20240307",
         temperature=0.7,

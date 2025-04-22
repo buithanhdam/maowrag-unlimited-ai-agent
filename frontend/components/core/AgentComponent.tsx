@@ -20,7 +20,6 @@ const agentTypeMap: Record<AgentType, string> = {
 interface Foundation {
   id: number;
   provider: string;
-  model_name: string;
   model_id: string;
   description?: string;
 }
@@ -255,7 +254,7 @@ export default function AgentComponent() {
   const getFoundationName = (foundationId?: number) => {
     if (!foundationId) return undefined;
     const foundation = foundations.find(f => f.id === foundationId);
-    return foundation ? foundation.model_name : undefined;
+    return foundation ? foundation.provider : undefined;
   };
   
   const getConfigName = (configId?: number) => {
@@ -416,7 +415,7 @@ export default function AgentComponent() {
               <SelectContent>
                 {foundations.map((foundation) => (
                   <SelectItem key={foundation.id} value={foundation.id.toString()}>
-                    {foundation.model_name}
+                    {foundation.provider}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -587,7 +586,7 @@ export default function AgentComponent() {
                               <SelectContent>
                                 {foundations.map((foundation) => (
                                   <SelectItem key={foundation.id} value={foundation.id.toString()}>
-                                    {foundation.model_name}
+                                    {foundation.provider}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
