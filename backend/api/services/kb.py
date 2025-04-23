@@ -302,7 +302,7 @@ class KnowledgeBaseService:
             # Process documents and create chunks
             for document in documents:
                 chunks = rag_manager.process_document(
-                    document=document.text,
+                    document=document,
                     document_id=doc.id,
                     collection_name=kb.specific_id,
                     metadata={
