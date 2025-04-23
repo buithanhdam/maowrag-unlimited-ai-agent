@@ -8,6 +8,41 @@ dotenv.load_dotenv()
 from src.prompt import LLM_SYSTEM_PROMPT
 from src.enums import LLMProviderType
 
+SUPPORTED_FILE_EXTENSIONS = [
+    ".pdf",
+    ".docx",
+    ".html",
+    ".txt",
+    ".csv",
+    ".xlsx",
+    ".json",
+    # ".pptx",
+    ".md",
+    ".ipynb",
+    ".mbox",
+    ".xml",
+    ".rtf",
+    
+]
+ACCEPTED_MIME_MEDIA_TYPE_PREFIXES = [
+    "audio/wav",
+    "audio/x-wav",
+    "audio/mpeg",
+    "audio/mp4",
+    "video/mp4",
+    "image/jpeg", 
+    "image/png",
+]
+
+SUPPORTED_MEDIA_FILE_EXTENSIONS = [
+    ".wav",
+    ".mp3",
+    ".m4a",
+    ".mp4",
+    ".jpg",
+    ".jpeg",
+    ".png"
+]
 class ReaderConfig(BaseModel):
     """Configuration for DoclingReader"""
     num_threads: int = 4
