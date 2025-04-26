@@ -11,7 +11,6 @@ import { Textarea } from '@/components/ui/textarea';
 interface Foundation {
   id: number;
   provider: string;
-  model_name: string;
   model_id: string;
   description?: string;
   capabilities?: any;
@@ -34,7 +33,6 @@ interface Config {
 const defaultFoundation: Foundation = {
   id: 0,
   provider: '',
-  model_name: '',
   model_id: '',
   description: '',
   capabilities: {}
@@ -52,7 +50,11 @@ const defaultConfig: Config = {
   system_prompt: '',
   stop_sequences: []
 }
-
+const ProviderTypeMap: Record<string, string> = {
+  OPENAI :"openai",
+  GOOGLE: "google",
+  ANTHROPIC :"anthropic"
+};
 const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
 
 const LLMComponent = () => {
@@ -120,7 +122,6 @@ const LLMComponent = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             provider: foundationForm.provider,
-            model_name: foundationForm.model_name,
             model_id: foundationForm.model_id,
             description: foundationForm.description,
             capabilities: foundationForm.capabilities,
@@ -274,16 +275,13 @@ const LLMComponent = () => {
                   <SelectValue placeholder="Select Provider" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="openai">OpenAI</SelectItem>
-                  <SelectItem value="gemini">Gemini</SelectItem>
-                  <SelectItem value="anthropic">Anthropic</SelectItem>
+                {Object.entries(ProviderTypeMap).map(([key, label]) => (
+                 <SelectItem key={key} value={label}>
+                  {key}
+                  </SelectItem>
+                ))}
                 </SelectContent>
               </Select>
-              <Input
-                placeholder="Model Name"
-                value={foundationForm.model_name}
-                onChange={(e) => setFoundationForm({ ...foundationForm, model_name: e.target.value })}
-              />
               <Input
                 placeholder="Model ID"
                 value={foundationForm.model_id}
@@ -337,7 +335,6 @@ const LLMComponent = () => {
                         className="cursor-pointer flex-grow"
                         onClick={() => setSelectedFoundation(foundation)}
                       >
-                        <div className="font-medium text-black">{foundation.model_name}</div>
                         <div className="text-sm text-blue-600">Provider: {foundation.provider}</div>
                         <div className="text-sm text-gray-500">ID: {foundation.model_id}</div>
                       </div>
@@ -382,7 +379,7 @@ const LLMComponent = () => {
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <CardTitle>Configs for {selectedFoundation.model_name}</CardTitle>
+                  <CardTitle>Configs for {selectedFoundation.model_id}</CardTitle>
                   <Dialog open={showConfigForm} onOpenChange={(open) => {
                     setShowConfigForm(open);
                     if (!open) setIsEditing(false);

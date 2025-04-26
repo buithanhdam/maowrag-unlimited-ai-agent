@@ -8,7 +8,7 @@ sys.path.append(str(Path(__file__).parent.parent.parent.parent))
 from llama_index.core.readers.base import BaseReader
 from theflow.settings import settings as flowsettings
 
-from src.readers.base import Document
+from src.readers.file.base import Document
 
 class HtmlReader(BaseReader):
     """Reader HTML usimg html2text

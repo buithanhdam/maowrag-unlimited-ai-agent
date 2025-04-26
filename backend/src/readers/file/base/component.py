@@ -3,7 +3,7 @@ from typing import Any, AsyncGenerator, Iterator, Optional
 
 from theflow import Function, Node, Param, lazy
 
-from src.readers.base.schema import Document
+from src.readers.file.base.schema import Document
 
 
 class BaseComponent(Function):

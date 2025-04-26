@@ -5,8 +5,8 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from typing import Optional
 
-from src.readers.utils import split_text
-from src.readers.base import Document
+from src.readers.file.utils import split_text
+from src.readers.file.base import Document
 
 from llama_index.core.readers.base import BaseReader
 

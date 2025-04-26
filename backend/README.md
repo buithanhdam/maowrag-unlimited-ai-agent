@@ -120,7 +120,30 @@
 
 ## 4. Running the Application
 
-### 4.1. Run FastAPI Backend
+### 4.1. Prerequisites for Audio/Video Processing
+
+To process audio/video files, FFmpeg is required:
+
+#### For Ubuntu/Debian
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
+
+#### For macOS (Homebrew)
+```bash
+brew install ffmpeg
+```
+
+#### For Windows
+1. Download FFmpeg from [FFmpeg official website](https://ffmpeg.org/download.html).
+2. Extract the files and add the `bin` folder to your system's PATH.
+3. Restart your terminal and verify installation with:
+   ```bash
+   ffmpeg -version
+   ```
+
+### 4.2. Run FastAPI Backend
 
 ```bash
 uvicorn app_fastapi:app --host 0.0.0.0 --port 8000 --reload

@@ -9,7 +9,7 @@ from llama_index.core import Document, Settings
 from llama_index.llms.gemini import Gemini
 # from llama_index.embeddings.gemini import GeminiEmbedding
 from .embed.gemini_embedding_model import GeminiEmbedding
-from llama_index.core.node_parser import SimpleNodeParser
+from llama_index.core.node_parser import SimpleNodeParser,SemanticSplitterNodeParser
 from llama_index.core.schema import NodeWithScore
 from src.db.qdrant import QdrantVectorDatabase
 from src.logger import get_formatted_logger
@@ -44,7 +44,8 @@ class BaseRAG(ABC):
         Settings.chunk_overlap = chunk_overlap
         
         # Initialize document parser
-        self.parser = SimpleNodeParser.from_defaults()
+        self.parser = self.parser = SemanticSplitterNodeParser.from_defaults(
+            embed_model=self.dense_embedding_model)
         
         # Initialize Qdrant client
         self.initialize_vector_db_client()
@@ -83,34 +84,9 @@ class BaseRAG(ABC):
         self.qdrant_client = QdrantVectorDatabase(url=self.vector_db_url)
         logger.info(f"Initialized Qdrant client with URL: {self.vector_db_url}")
         
-    def split_document(
-        self,
-        document: Document,
-        show_progress: bool = True
-    ) -> List[Document]:
-        """
-        Split document into chunks
-        """
-        nodes = self.parser.get_nodes_from_documents([document])
-        
-        chunks = []
-        nodes_iter = tqdm(nodes, desc="Splitting...") if show_progress else nodes
-        
-        for node in nodes_iter:
-            chunk_id = str(uuid.uuid4())
-            chunk = Document(
-                text=node.get_content(),
-                metadata={
-                    **document.metadata,
-                    "chunk_id": chunk_id
-                }
-            )
-            chunks.append(chunk)
-        logger.info(f"Split document into {len(chunks)} chunks")
-        return chunks
     def process_document(
         self,
-        document: str,
+        document: Document,
         collection_name: str,
         document_id: Optional[str] | Optional[int] = None,
         metadata: Optional[dict] = None,
@@ -120,25 +96,41 @@ class BaseRAG(ABC):
             document_id = str(uuid.uuid4())
 
         try:
-            doc = Document(text=document, metadata=metadata or {})
-            chunks = self.split_document(doc, show_progress=show_progress)
-
-            # Index chunks
-            chunks_iter = tqdm(chunks, desc="Indexing...") if show_progress else chunks
-            for chunk in chunks_iter:
+            # Split document into chunks
+            logger.info(f"Splitting document {document_id} with index metadata {metadata}")
+            nodes = self.parser.get_nodes_from_documents(documents=[document],show_progress=show_progress)
+            
+            chunks = []
+            logger.info(f"Indexing document [{document_id}]...")
+            for node in nodes:
+                # Generate unique chunk ID
+                chunk_id = str(uuid.uuid4())
+                text = node.get_content()
+                # Create chunk with metadata
+                chunk = Document(
+                    text=text,
+                    metadata={
+                        **metadata,
+                        **node.metadata,
+                        "chunk_id": chunk_id,
+                        "document_id": document_id,
+                    }
+                )
+                # Generate embeddings
                 dense_embedding = self.dense_embedding_model.get_text_embedding(chunk.text)
                 sparse_embedding = self.sparse_embedding_model.embed(chunk.text)
                 sparse_embedding = list(sparse_embedding)[0].as_object()
                 # Ensure collection exists
-                if chunk == chunks[0]:  # Only check on first chunk
+                if node == nodes[0]:  # Only check on first chunk
                     self.ensure_collection(collection_name, len(dense_embedding))
 
                 payload = QdrantPayload(
                     document_id=document_id,
                     text=chunk.text,
                     vector_id=chunk.metadata["chunk_id"],
+                    metadata=metadata,
                 )
-
+                # Add vector to Qdrant
                 self.qdrant_client.add_vector(
                     collection_name=collection_name,
                     vector_id=chunk.metadata["chunk_id"],
@@ -146,13 +138,14 @@ class BaseRAG(ABC):
                     sparse_vector=sparse_embedding,
                     payload=payload,
                 )
+                # Add metadata to chunk
                 chunk.metadata["dense_embedding"] = json.dumps(dense_embedding)
                 chunk.metadata["sparse_embedding"] = json.dumps({key: value.tolist() for key, value in sparse_embedding.items()})
-
+                chunks.append(chunk)
                 logger.info(
                     f"Successfully processed document {document_id} with chunk {chunk.metadata['chunk_id']}"
                 )
-            return chunks_iter
+            return chunks
 
         except Exception as e:
             logger.error(f"Error processing document: {str(e)}")

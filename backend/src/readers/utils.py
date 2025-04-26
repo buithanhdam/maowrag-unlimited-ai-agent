@@ -1,15 +1,13 @@
 # This file contains utility functions for the readers module.
-
-import sys
 from pathlib import Path
 from typing import Any
 from dotenv import load_dotenv
+from datetime import datetime
 from llama_index.core import Document
 from llama_index.core import SimpleDirectoryReader
-sys.path.append(str(Path(__file__).parent.parent.parent))
-from src.constants import SUPPORTED_FILE_EXTENSIONS
+from tqdm import tqdm
+from src.config import SUPPORTED_FILE_EXTENSIONS, SUPPORTED_MEDIA_FILE_EXTENSIONS
 from src.logger import get_formatted_logger
-
 
 load_dotenv()
 logger = get_formatted_logger(__file__)
@@ -25,7 +23,8 @@ def check_valid_extenstion(file_path: str | Path) -> bool:
     Returns:
         bool: True if the file extension is supported, False otherwise.
     """
-    return Path(file_path).suffix in SUPPORTED_FILE_EXTENSIONS
+    allowed_extensions = SUPPORTED_FILE_EXTENSIONS + SUPPORTED_MEDIA_FILE_EXTENSIONS
+    return Path(file_path).suffix in allowed_extensions
 
 
 def get_files_from_folder_or_file_paths(files_or_folders: list[str]) -> list[str]:
@@ -58,31 +57,9 @@ def get_files_from_folder_or_file_paths(files_or_folders: list[str]) -> list[str
 
     return files
 
-def split_text(text, max_tokens) -> list[str]:
-    words = text.split()  # Tokenize by spaces and newlines
-    chunks = []
-    current_chunk = []
-    current_token_count = 0
-
-    for word in words:
-        token_count = len(word.split())  # Number of tokens in the word
-
-        # If adding the current word exceeds max_tokens, finalize the current chunk
-        if current_token_count + token_count > max_tokens:
-            chunks.append(" ".join(current_chunk))
-            current_chunk = [word]  # Start a new chunk with the current word
-            current_token_count = token_count
-        else:
-            current_chunk.append(word)
-            current_token_count += token_count
-
-    # Add the final chunk if any tokens are left
-    if current_chunk:
-        chunks.append(" ".join(current_chunk))
-
-    return chunks
 def parse_multiple_files(
-    files_or_folder: list[str] | str, extractor: dict[str, Any]
+    files_or_folder: list[str] | str, extractor: dict[str, Any],
+    show_progress: bool = True
 ) -> list[Document]:
     """
     Read the content of multiple files.
@@ -105,9 +82,29 @@ def parse_multiple_files(
 
     logger.info(f"Valid files: {valid_files}")
 
-    documents = SimpleDirectoryReader(
-        input_files=valid_files,
-        file_extractor=extractor,
-    ).load_data(show_progress=True)
-    logger.info(len(documents))
+    documents: list[Document] = []
+
+    files_to_process = tqdm(valid_files, desc="Starting parse files", unit="file") if show_progress else valid_files
+
+    for file in files_to_process:
+        file_suffix = Path(file).suffix.lower()
+        file_extractor = extractor[file_suffix]
+
+        if file_suffix in SUPPORTED_MEDIA_FILE_EXTENSIONS:
+            result = file_extractor.convert(file)
+            documents.append(
+                Document(
+                    text=result.text_content,
+                    metadata={
+                        "title": result.title,
+                        "created_at": datetime.now().isoformat(),
+                        "file_name": Path(file).name,
+                    },
+                )
+            )
+        else:
+            results = file_extractor.load_data(file)
+            documents.extend(results)
+
+    logger.info(f"Parse files successfully with {files_or_folder} split to {len(documents)} documents")
     return documents

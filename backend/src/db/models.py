@@ -228,11 +228,7 @@ class AgentTool(Base):
     tool_id = Column(Integer, ForeignKey("tools.id"), primary_key=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-SQLALCHEMY_DATABASE_URL = f"""mysql+pymysql://{global_config.MYSQL_USER}:
-{global_config.MYSQL_PASSWORD}@
-{global_config.MYSQL_HOST}:
-{global_config.MYSQL_PORT}/
-{global_config.MYSQL_DB}"""
+SQLALCHEMY_DATABASE_URL = f"""mysql+pymysql://{global_config.MYSQL_USER}:{global_config.MYSQL_PASSWORD}@{global_config.MYSQL_HOST}:{global_config.MYSQL_PORT}/{global_config.MYSQL_DB}"""
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 Base.metadata.create_all(engine)
