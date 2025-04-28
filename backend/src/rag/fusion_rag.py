@@ -59,7 +59,7 @@ class FusionRAG(BaseRAG):
             logger.info("[Fuse Search] - Step 1: Generate sub-queries from user query")
             query_gen_prompt_str = (
                 "You are a helpful assistant that generates multiple search queries based on a "
-                "single input query. Generate {num_queries} search queries, one on each line, "
+                "single input query for rag business system. Generate {num_queries} search queries, one on each line, "
                 "related to the following input query:\n"
                 "Query: {query}\n"
                 "Queries:\n"

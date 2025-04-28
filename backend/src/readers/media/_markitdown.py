@@ -24,7 +24,7 @@ from ._uri_utils import parse_data_uri, file_uri_to_path
 
 from .converters import (
     ImageConverter,
-    AudioConverter,
+    AudioConverter,OCRConverter
 )
 
 from ._base_converter import DocumentConverter, DocumentConverterResult
@@ -172,7 +172,7 @@ class MarkItDown:
             # self.register_converter(XlsxConverter())
             # self.register_converter(XlsConverter())
             # self.register_converter(PptxConverter())
-            self.register_converter(AudioConverter())
+            self.register_converter(OCRConverter())
             self.register_converter(ImageConverter())
             # self.register_converter(IpynbConverter())
             # self.register_converter(PdfConverter())

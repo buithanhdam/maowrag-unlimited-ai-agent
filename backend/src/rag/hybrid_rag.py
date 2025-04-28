@@ -43,7 +43,11 @@ class HybridRAG(BaseRAG):
             logger.info(normal_results)
             # Step 3: Filter results based on score threshold
             logger.info("[Hybrid Search] - Step 3: Filter results based on score threshold")
-            contexts = [result.payload["text"] for result in normal_results]
+            contexts = [
+                 result.payload["text"]
+                 for result in normal_results
+                 if result.score >= score_threshold
+             ] or [result.payload["text"] for result in normal_results]
             
             # Step 4: Generate final response
             logger.info("[Hybrid Search] - Step 4: Generate final response")
