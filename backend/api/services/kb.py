@@ -5,9 +5,8 @@ import tempfile
 from typing import List, Optional, Dict, Any
 import uuid
 from sqlalchemy.orm import Session
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 from datetime import datetime
-
 from api.schemas.kb import (KnowledgeBaseCreate, KnowledgeBaseResponse, KnowledgeBaseUpdate,DocumentCreate,DocumentResponse)
 from src.rag.base import BaseRAG
 from src.db.models import (KnowledgeBase,RAGConfig,Document,DocumentChunk)
@@ -16,6 +15,7 @@ from src.db.qdrant import QdrantVectorDatabase
 from src.db.aws import S3Client, get_aws_s3_client
 from src.readers import parse_multiple_files, FileExtractor
 from src.rag.rag_manager import RAGManager
+from src.tasks.document_task import upload_document
 from src.config import global_config
 from src.logger import get_formatted_logger
 
@@ -48,20 +48,19 @@ class KnowledgeBaseService:
             )
             session.add(rag_config)
             session.flush()  # Get the rag_config.id
-            
+            specific_id = uuid.uuid4()
             # Create the knowledge base
             kb = KnowledgeBase(
                 name=kb_data.name,
                 description=kb_data.description,
                 rag_config_id=rag_config.id,
                 extra_info=kb_data.extra_info,
+                specific_id=specific_id,
                 is_active=True
             )
             session.add(kb)
             session.flush()
             
-            specific_id = f"kb-{kb.id}-{uuid.uuid4()}"
-            kb.specific_id = specific_id
             try:
                 self.qdrant_client.create_collection(specific_id, vector_size=768)
                 self.s3_client.create_bucket(specific_id)
@@ -161,61 +160,57 @@ class KnowledgeBaseService:
             chunk_overlap=rag_config.chunk_overlap,
         )
         return rag_manager
-    async def create_document(
+    # working with documents
+    async def create_and_upload_document(
         self,
         session: Session,
         kb_id: int,
         doc_data: DocumentCreate,
-        file_content: bytes,
-        filename: str
+        file:UploadFile
     ) -> DocumentResponse:
         """Create a new document and store it in S3"""
-        kb = session.query(KnowledgeBase).filter(KnowledgeBase.id == kb_id).first()
-        if not kb:
-            raise HTTPException(status_code=404, detail="Knowledge base not found")
-        
-        temp_file = None
         try:
-            # Create temp directory if it doesn't exist
-            temp_dir = Path(tempfile.gettempdir()) / "uploads"
-            temp_dir.mkdir(parents=True, exist_ok=True)
+            allowed_extensions = global_config.READER_CONFIG.supported_formats
+            max_file_size = global_config.READER_CONFIG.max_file_size
+            file_content = bytearray()
+            filename = file.filename.lower()
             
-            original_filename = Path(filename)
-            extension = original_filename.suffix.lower()
+            if not filename.endswith(allowed_extensions):
+                raise HTTPException(400, f"Unsupported file type. Allowed types: {allowed_extensions}")
             
-            # Create temp file with unique name
-            temp_file = tempfile.NamedTemporaryFile(
-                delete=False,
-                suffix=extension,
-                dir=temp_dir
+            # Check file size
+            file_size = 0
+            
+            # Read file in chunks to handle large files
+            chunk_size = 1024 * 1024  # 1MB chunks
+            while True:
+                chunk = await file.read(chunk_size)
+                if not chunk:
+                    break
+                file_size += len(chunk)
+                if file_size > max_file_size:
+                    raise HTTPException(400, f"File too large. Maximum size: {max_file_size/1024/1024}MB")
+                file_content.extend(chunk)
+                
+            
+            kb = session.query(KnowledgeBase).filter(KnowledgeBase.id == kb_id).first()
+            if not kb:
+                raise HTTPException(status_code=404, detail="Knowledge base not found")
+                
+            task = upload_document.delay(
+                    bucket_name= kb.specific_id,
+                    file_content= file_content,
+                    filename=filename
             )
-            
-            # Write content to temp file
-            with open(temp_file.name, 'wb') as f:
-                f.write(file_content)
-            
-            # Generate S3 path
-            date_path = datetime.now().strftime("%Y/%m/%d")
-            file_name = f"{uuid.uuid4()}_{filename}"
-            bucket_name = kb.specific_id
-
-            # Upload to S3
-            try:
-                file_path_in_s3 = self.s3_client.upload_file(
-                    bucket_name=bucket_name,
-                    object_name=os.path.join(date_path, file_name),
-                    file_path=str(temp_file.name),
-                )
-            except Exception as e:
-                logger.error(f"S3 upload failed: {str(e)}")
-                raise HTTPException(500, "Failed to upload file to storage")
-
+            if task.status != "success":
+                raise HTTPException(500, f"Task {task.task_id} Failed to upload document: {task.message}")
             # Create document record
             document = Document(
                 knowledge_base_id=kb_id,
-                name=file_name,
-                source=file_path_in_s3,
-                extension=extension,
+                task_id=task.task_id,
+                name=task.file_name,
+                source=task.file_path_in_s3,
+                extension=filename.split(".")[-1],
                 status=DocumentStatusType.UPLOADED,
                 extra_info=doc_data.extra_info,
             )
@@ -225,19 +220,10 @@ class KnowledgeBaseService:
             session.refresh(document)
             
             return document
-            
         except Exception as e:
             session.rollback()
             logger.error(f"Error creating document: {str(e)}")
             raise HTTPException(500, f"Failed to create document: {str(e)}")
-            
-        finally:
-            # Cleanup temp file
-            if temp_file and os.path.exists(temp_file.name):
-                try:
-                    os.unlink(temp_file.name)
-                except Exception as e:
-                    logger.warning(f"Failed to delete temp file: {str(e)}")
 
     async def process_document(
         self,
@@ -307,7 +293,7 @@ class KnowledgeBaseService:
                     collection_name=kb.specific_id,
                     metadata={
                         **document.metadata,
-                        "document_name": doc.name,
+                        "file_path": doc.name,
                         "created_at": doc.created_at.isoformat(),
                     }
                 )

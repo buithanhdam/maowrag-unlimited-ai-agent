@@ -86,28 +86,7 @@ async def upload_document(
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Upload a document for a specific knowledge base"""
-    # Validate file type and size
-    allowed_extensions = ('.pdf', '.txt', '.doc', '.docx')
-    max_file_size = 50 * 1024 * 1024  # 50MB limit
-    
-    if not file.filename.lower().endswith(allowed_extensions):
-        raise HTTPException(400, f"Unsupported file type. Allowed types: {allowed_extensions}")
-    
-    # Check file size
-    file_size = 0
-    content = bytearray()
-    
-    # Read file in chunks to handle large files
-    chunk_size = 1024 * 1024  # 1MB chunks
-    while True:
-        chunk = await file.read(chunk_size)
-        if not chunk:
-            break
-        file_size += len(chunk)
-        if file_size > max_file_size:
-            raise HTTPException(400, f"File too large. Maximum size: {max_file_size/1024/1024}MB")
-        content.extend(chunk)
-        
+    # Validate file type and size        
     try:
         # Parse and validate the JSON string
         try:
@@ -118,12 +97,11 @@ async def upload_document(
         except ValidationError as e:
             raise HTTPException(400, f"Invalid document data: {str(e)}")
         
-        return await kb_service.create_document(
+        return await kb_service.create_and_upload_document(
             session=db,
             kb_id=kb_id,
             doc_data=doc_data_obj,
-            file_content=bytes(content),
-            filename=file.filename
+            file=file
         )
             
     except HTTPException as e:

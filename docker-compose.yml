@@ -15,11 +15,33 @@ services:
       - PYTHONUNBUFFERED=1
       - QDRANT_URL=http://qdrant:6333
     depends_on:
-      - mysql
-      - qdrant
+      mysql:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - maowrag-network
-  
+  celery:
+    build:
+      context: ./backend/celery_docker
+      dockerfile: Dockerfile.celery
+    volumes:
+      - ./backend:/app
+    env_file:
+      - ./backend/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      redis:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    networks:
+      - maowrag-network
+    command: celery -A src.celery worker --loglevel=info
+
   qdrant:
     image: "qdrant/qdrant:v1.12.0"
     ports:
@@ -77,9 +99,30 @@ services:
       - MYSQL_ALLOW_EMPTY_PASSWORD=yes
     volumes:
       - ./backend/data/mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     networks:
       - maowrag-network
     command: --default-authentication-plugin=mysql_native_password
+  redis:
+    image: redis:7-alpine
+    ports: 
+      - "6379:6379"
+    volumes:
+      - ./backend/data/redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - maowrag-network
+  
 networks:
   maowrag-network:
     driver: bridge
