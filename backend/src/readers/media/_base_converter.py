@@ -13,6 +13,7 @@ class DocumentConverterResult:
         markdown: str,
         *,
         title: Optional[str] = None,
+        **kwargs: Any,
     ):
         """
         Initialize the DocumentConverterResult.
@@ -26,6 +27,7 @@ class DocumentConverterResult:
         """
         self.markdown = markdown
         self.title = title
+        self.metadata = kwargs
 
     @property
     def text_content(self) -> str:

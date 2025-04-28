@@ -72,7 +72,7 @@ class OCRConverter(DocumentConverter):
         llm_client = kwargs.get("llm_client")
         llm_model = kwargs.get("llm_model")
         if llm_client is not None and llm_model is not None:
-            llm_description = self._get_llm_description(
+            llm_description, image_base64 = self._get_llm_description(
                 file_stream,
                 stream_info,
                 client=llm_client,
@@ -85,6 +85,7 @@ class OCRConverter(DocumentConverter):
 
         return DocumentConverterResult(
             markdown=md_content,
+            image_base64=image_base64
         )
 
     def _get_llm_description(
@@ -95,7 +96,7 @@ class OCRConverter(DocumentConverter):
         client:genai.Client,
         model,
         prompt=None,
-    ) -> Union[None, str]:
+    ) -> tuple[Union[None, str], str]:
         if prompt is None or prompt.strip() == "":
             prompt = "Write a detailed caption or OCR Text if needed for this image."
 
@@ -115,13 +116,15 @@ class OCRConverter(DocumentConverter):
                 content_type = "image/jpeg"  # Default fallback
         if not content_type:
             content_type = "application/octet-stream"
-
+              
         # Convert to base64
         cur_pos = file_stream.tell()
         try:
             image_bytes = file_stream.read()
+            base64_image = base64.b64encode(image_bytes).decode("utf-8")
+            data_uri = f"data:{content_type};base64,{base64_image}"
         except Exception as e:
-            return None
+            return None, None
         finally:
             file_stream.seek(cur_pos)
 
@@ -135,4 +138,4 @@ class OCRConverter(DocumentConverter):
             prompt
             ]
         )
-        return response.text
+        return response.text,data_uri

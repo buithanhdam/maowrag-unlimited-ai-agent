@@ -18,7 +18,7 @@ def get_extractor():
         llm_model=global_config.GEMINI_CONFIG.model_id.split("/")[1]
     )
     return {
-        ".pdf": PDFReader(),
+        ".pdf": PDFThumbnailReader(),
         ".docx": DocxReader(),
         ".html": HtmlReader(),
         ".csv": PandasCSVReader(pandas_config=dict(on_bad_lines="skip")),
