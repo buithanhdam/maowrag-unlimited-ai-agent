@@ -23,8 +23,7 @@ from ._stream_info import StreamInfo
 from ._uri_utils import parse_data_uri, file_uri_to_path
 
 from .converters import (
-    ImageConverter,
-    AudioConverter,OCRConverter
+    AudioConverter,OCRConverter, XlsConverter, XlsxConverter, CsvConverter
 )
 
 from ._base_converter import DocumentConverter, DocumentConverterResult
@@ -169,16 +168,17 @@ class MarkItDown:
             # self.register_converter(YouTubeConverter())
             # self.register_converter(BingSerpConverter())
             # self.register_converter(DocxConverter())
-            # self.register_converter(XlsxConverter())
-            # self.register_converter(XlsConverter())
+            self.register_converter(XlsxConverter())
+            self.register_converter(XlsConverter())
             # self.register_converter(PptxConverter())
+            self.register_converter(AudioConverter())
+            # self.register_converter(ImageConverter())
             self.register_converter(OCRConverter())
-            self.register_converter(ImageConverter())
             # self.register_converter(IpynbConverter())
             # self.register_converter(PdfConverter())
             # self.register_converter(OutlookMsgConverter())
             # self.register_converter(EpubConverter())
-            # self.register_converter(CsvConverter())
+            self.register_converter(CsvConverter())
 
             # Register Document Intelligence converter at the top of the stack if endpoint is provided
             docintel_endpoint = kwargs.get("docintel_endpoint")

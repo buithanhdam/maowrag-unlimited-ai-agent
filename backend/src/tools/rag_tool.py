@@ -36,7 +36,7 @@ class RAGTool:
             )
             
             # Use knowledge_base.specific_id as collection name or other identifier
-            collection_name = knowledge_base.specific_id
+            collection_name = knowledge_base.uuid
             
             return rag.search(
                 query=query, 

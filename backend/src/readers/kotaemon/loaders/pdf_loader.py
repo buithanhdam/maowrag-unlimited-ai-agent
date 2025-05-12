@@ -9,7 +9,7 @@ sys.path.append(str(Path(__file__).parent.parent.parent.parent))
 from fsspec import AbstractFileSystem
 from llama_index.readers.file import PDFReader
 from PIL import Image
-from src.readers.file.base import Document
+from src.readers.kotaemon.base import Document
 from src.logger import get_formatted_logger
 
 logger = get_formatted_logger(__file__)

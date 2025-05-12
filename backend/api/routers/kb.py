@@ -1,9 +1,9 @@
 import json
 from typing import List, Dict
-from fastapi import APIRouter, Form, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter,status, Form, UploadFile, File, HTTPException, Depends
 from jsonschema import ValidationError
 from sqlalchemy.orm import Session
-
+from src.config import global_config
 from src.db.mysql import get_db
 from api.services.kb import KnowledgeBaseService
 from api.schemas.kb import (
@@ -88,6 +88,35 @@ async def upload_document(
     """Upload a document for a specific knowledge base"""
     # Validate file type and size        
     try:
+        extension_allowed = global_config.READER_CONFIG.supported_formats
+
+        if not extension_allowed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No supported file formats configured",
+            )
+
+        # Check if filename exists
+        if not file.filename:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Missing filename"
+            )
+
+        # Convert filename to lowercase for case-insensitive comparison
+        filename_lower = file.filename.lower()
+
+        # Check if file extension is supported
+        if not any(filename_lower.endswith(ext.lower()) for ext in extension_allowed):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Only {', '.join(extension_allowed)} files allowed",
+            )
+        # Check if file size is within the allowed limit
+        if file.size > global_config.READER_CONFIG.max_file_size:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"File size exceeds the allowed limit of {global_config.READER_CONFIG.max_file_size/1024/1024}MB",
+            )
         # Parse and validate the JSON string
         try:
             doc_data_dict = json.loads(doc_data)

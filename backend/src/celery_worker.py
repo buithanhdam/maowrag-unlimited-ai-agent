@@ -1,19 +1,12 @@
-import os
+# src/celery.py
 from celery import Celery
-from dotenv import load_dotenv
 from src.config import global_config
-from src.logger import get_formatted_logger
-
-logger = get_formatted_logger(__file__)
-load_dotenv()
 
 celery_app = Celery(
     "document_task",
     backend=global_config.CELERY_BROKER_URL,
     broker=global_config.CELERY_BROKER_URL,
     include=["src.tasks.document_task"],
-    log=logger,
-    
 )
 
 celery_app.conf.update(
@@ -23,4 +16,9 @@ celery_app.conf.update(
     accept_content=["json"],
     timezone="UTC",
     enable_utc=True,
+    task_track_started=True,
+    task_time_limit=600,  # 10 minutes
+    task_soft_time_limit=300,  # 5 minutes
+    worker_max_tasks_per_child=200,  # Restart worker after 200 tasks
+    worker_prefetch_multiplier=1,  # One task at a time
 )

@@ -13,8 +13,8 @@ sys.path.append(str(Path(__file__).parent.parent.parent.parent))
 
 from llama_index.core.readers.base import BaseReader
 
-from src.readers.file.utils import split_text
-from src.readers.file.base import Document
+from src.readers.kotaemon.utils import split_text
+from src.readers.kotaemon.base import Document
 
 class PandasExcelReader(BaseReader):
     r"""Pandas-based CSV parser.

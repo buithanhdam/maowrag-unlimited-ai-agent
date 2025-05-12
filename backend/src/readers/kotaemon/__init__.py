@@ -10,7 +10,7 @@ from llama_index.readers.file import (
     XMLReader,
     RTFReader
 )
-from src.readers.file.loaders import (DocxReader,TxtReader,ExcelReader,HtmlReader,MhtmlReader,PDFReader,PDFThumbnailReader,PandasExcelReader)
+from src.readers.kotaemon.loaders import (DocxReader,TxtReader,ExcelReader,HtmlReader,MhtmlReader,PDFReader,PDFThumbnailReader,PandasExcelReader)
 __all__=[
     "JSONReader", "PandasCSVReader",
     "MarkdownReader",

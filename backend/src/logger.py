@@ -1,6 +1,5 @@
 # This file contains the logger configuration for the application.
-
-from datetime import datetime
+from datetime import datetime, timezone
 from logging.handlers import TimedRotatingFileHandler
 import sys
 import click
@@ -8,6 +7,7 @@ import logging
 from copy import copy
 from pathlib import Path
 from typing import Literal
+import os
 
 TRACE_LOG_LEVEL = 5
 
@@ -33,10 +33,10 @@ class ColourizedFormatter(logging.Formatter):
         Initialize the formatter.
 
         Args:
-            fmt (str | None): The format string. Defaults to `None`.
-            datefmt (str | None): The date format string. Defaults to `None`.
-            style (Literal["%", "{", "$"]): The style of the format string. Defaults to `%`.
-            use_colors (bool | None): Whether to use colors. Defaults to `None`.
+            fmt (str | None): The format string. Defaults to None.
+            datefmt (str | None): The date format string. Defaults to None.
+            style (Literal["%", "{", "$"]): The style of the format string. Defaults to %.
+            use_colors (bool | None): Whether to use colors. Defaults to None.
         """
         if use_colors in (True, False):
             self.use_colors = use_colors
@@ -87,7 +87,7 @@ class ColourizedFormatter(logging.Formatter):
 
     def should_use_colors(self) -> bool:
         """
-        Check if colors should be used. Defaults to `True`.
+        Check if colors should be used. Defaults to True.
 
         Returns:
             bool: Whether colors should be used.
@@ -163,26 +163,78 @@ class FileFormater(logging.Formatter):
         return super().formatMessage(recordcopy)
 
 
-def get_formatted_logger(
-    name: str, file_path: str | None = None
-) -> logging.Logger:
+class DailyFolderFileHandler(TimedRotatingFileHandler):
+    """A custom handler that creates logs in daily folders"""
+    
+    def __init__(self, filename, when='D', interval=1, backupCount=0, encoding=None, 
+                 delay=False, utc=True, atTime=None):
+        # Make sure base directory exists
+        base_dir = os.path.dirname(filename)
+        os.makedirs(base_dir, exist_ok=True)
+        
+        super().__init__(filename, when=when, interval=interval, backupCount=backupCount,
+                         encoding=encoding, delay=delay, utc=utc, atTime=atTime)
+        
+        # Store the base pattern for the filename
+        self.base_filename_pattern = filename
+        
+        # Set the current filename based on today's date
+        self._update_filename()
+        
+    def _update_filename(self):
+        """Update the filename based on current date in UTC"""
+        today = datetime.now().strftime('%Y-%m-%d')
+        folder_path = f"logs/{today}"
+        os.makedirs(folder_path, exist_ok=True)
+        
+        # Get the base filename (without path)
+        base_name = os.path.basename(self.base_filename_pattern)
+        
+        # Set the new filename with updated path
+        self.baseFilename = os.path.join(folder_path, base_name)
+        
+    def emit(self, record):
+        """Check if date has changed before emitting the record"""
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        log_file_date = os.path.basename(os.path.dirname(self.baseFilename))
+        
+        # If date has changed, update the filename
+        if current_date != log_file_date:
+            self.close()  # Close current file
+            self._update_filename()  # Update filename with new date
+            
+            # Create the file if it doesn't exist
+            if not self.delay:
+                self.stream = self._open()
+        
+        super().emit(record)
+
+
+_loggers = {}
+
+def get_formatted_logger(name: str, file_path: str | None = None) -> logging.Logger:
     """
     Get a coloured logger.
 
     Args:
         name (str): The name of the logger.
-        file_path (str | None): The path to the log file. Defaults to `None`.
-        global_file_log (bool): Whether to log to the global file. Defaults to `False`.
+        file_path (str | None): The path to the log file. Defaults to None.
 
     Returns:
         logging.Logger: The logger object.
 
-    **Note:** Name is only used to prevent from being root logger.
+    **Note:** Name is used as an identifier to prevent duplicate loggers and for hierarchical logging.
     """
+    # Return existing logger if already created
+    if name in _loggers:
+        return _loggers[name]
+    
     logger = logging.getLogger(name=name)
     logger.setLevel(TRACE_LOG_LEVEL)
-
+    
+    # Only add handlers if none exist
     if not logger.hasHandlers():
+        # Console handler
         stream_handler = logging.StreamHandler()
         stream_formatter = DefaultFormatter(
             "%(asctime)s | %(levelprefix)s - [%(relpathname)s %(funcName)s(%(lineno)d)] - %(message)s",
@@ -190,19 +242,23 @@ def get_formatted_logger(
         )
         stream_handler.setFormatter(stream_formatter)
         logger.addHandler(stream_handler)
-        date_log_path = f"logs/{datetime.now().strftime('%Y-%m-%d')}"
-
-        Path(date_log_path).mkdir(parents=True, exist_ok=True)
-
-        global_file_handler = TimedRotatingFileHandler(
-            f"{date_log_path}/global.log", when="midnight", interval=1, encoding="utf-8"
+        
+        # Global log file with automatic date-based directory structure using UTC
+        today = datetime.now().strftime('%Y-%m-%d')
+        global_file_handler = DailyFolderFileHandler(
+            f"logs/{today}/global.log",  # Initial path using UTC time
+            when="midnight", 
+            interval=1, 
+            encoding="utf-8"
         )
-        global_file_handler.suffix = "%Y-%m-%d"
         global_file_formatter = FileFormater(
             "%(asctime)s | %(levelname)-8s - [%(relpathname)s %(funcName)s(%(lineno)d)] - %(message)s",
             datefmt="%Y/%m/%d - %H:%M:%S",
         )
         global_file_handler.setFormatter(global_file_formatter)
         logger.addHandler(global_file_handler)
-
+        
+        # Store logger in cache
+        _loggers[name] = logger
+    
     return logger

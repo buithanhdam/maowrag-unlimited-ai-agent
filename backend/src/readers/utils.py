@@ -4,11 +4,12 @@ from typing import Any
 from dotenv import load_dotenv
 from datetime import datetime
 from llama_index.core import Document
-from llama_index.core import SimpleDirectoryReader
+import ast
 from tqdm import tqdm
-from src.config import SUPPORTED_FILE_EXTENSIONS, SUPPORTED_MEDIA_FILE_EXTENSIONS
+from src.config import SUPPORTED_FILE_EXTENSIONS, SUPPORTED_MEDIA_FILE_EXTENSIONS, SUPPORTED_EXCEL_FILE_EXTENSIONS
 from src.logger import get_formatted_logger
-from .media import DocumentConverterResult
+from .markitdown import DocumentConverterResult
+
 load_dotenv()
 logger = get_formatted_logger(__file__)
 
@@ -23,7 +24,7 @@ def check_valid_extenstion(file_path: str | Path) -> bool:
     Returns:
         bool: True if the file extension is supported, False otherwise.
     """
-    allowed_extensions = SUPPORTED_FILE_EXTENSIONS + SUPPORTED_MEDIA_FILE_EXTENSIONS
+    allowed_extensions = SUPPORTED_FILE_EXTENSIONS + SUPPORTED_MEDIA_FILE_EXTENSIONS + SUPPORTED_EXCEL_FILE_EXTENSIONS
     return Path(file_path).suffix in allowed_extensions
 
 
@@ -98,14 +99,42 @@ def parse_multiple_files(
                 "created_at": datetime.now().isoformat(),
                 "file_name": file_path_obj.name,
             }
-            if result.metadata["image_base64"]:
+            if result.metadata and result.metadata["image_base64"]:
                 metadata["image_origin"] = result.metadata["image_base64"]
+                
             documents.append(
                 Document(
                     text=result.text_content,
                     metadata=metadata,
                 )
             )
+        elif (file_suffix in SUPPORTED_EXCEL_FILE_EXTENSIONS):
+            result: DocumentConverterResult = file_extractor.convert(file)
+            metadata={
+                "title": result.title,
+                "created_at": datetime.now().isoformat(),
+                "file_name": file_path_obj.name,
+            }
+            if result.metadata and result.metadata["image_base64"]:
+                metadata["image_origin"] = result.metadata["image_base64"]
+            try:
+                sheet_excel_texts: list = ast.literal_eval(result.text_content)
+                for idx, sheet_excel_text in enumerate(sheet_excel_texts):
+                    sheet_metadata = metadata.copy()
+                    sheet_metadata["sheet_index"] = idx
+                    documents.append(
+                        Document(
+                            text=sheet_excel_text,
+                            metadata=sheet_metadata,
+                        )
+                    )
+            except:
+                documents.append(
+                    Document(
+                        text=result.text_content,
+                        metadata=metadata,
+                    )
+                )
         else:
             results = file_extractor.load_data(file_path_obj)
             documents.extend(results)

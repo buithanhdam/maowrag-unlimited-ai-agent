@@ -151,7 +151,7 @@ class KnowledgeBase(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     rag_config_id = Column(Integer, ForeignKey("rag_configs.id"))
     name = Column(String(100), nullable=False)
-    specific_id = Column(String(200))
+    uuid = Column(String(200))
     description = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -168,7 +168,7 @@ class Document(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     knowledge_base_id = Column(Integer, ForeignKey("knowledge_bases.id"))
-    task_id = Column(Integer)
+    task_id = Column(String(255))
     name = Column(String(255), nullable=False)
     source = Column(String(255))
     extension = Column(String(50))
@@ -229,7 +229,6 @@ class AgentTool(Base):
     tool_id = Column(Integer, ForeignKey("tools.id"), primary_key=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-SQLALCHEMY_DATABASE_URL = f"""mysql+pymysql://{global_config.MYSQL_USER}:{global_config.MYSQL_PASSWORD}@{global_config.MYSQL_HOST}:{global_config.MYSQL_PORT}/{global_config.MYSQL_DB}"""
-
+SQLALCHEMY_DATABASE_URL = f"""postgresql+psycopg2://{global_config.DB_USER}:{global_config.DB_PASSWORD}@{global_config.DB_HOST}:{global_config.DB_PORT}/{global_config.DB_NAME}"""
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 Base.metadata.create_all(engine)

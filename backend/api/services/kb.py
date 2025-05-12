@@ -15,7 +15,7 @@ from src.db.qdrant import QdrantVectorDatabase
 from src.db.aws import S3Client, get_aws_s3_client
 from src.readers import parse_multiple_files, FileExtractor
 from src.rag.rag_manager import RAGManager
-from src.tasks.document_task import upload_document
+from src.tasks.document_task import upload_document, TaskResponse
 from src.config import global_config
 from src.logger import get_formatted_logger
 
@@ -48,22 +48,22 @@ class KnowledgeBaseService:
             )
             session.add(rag_config)
             session.flush()  # Get the rag_config.id
-            specific_id = uuid.uuid4()
+            kb_uuid = "kb-" + str(uuid.uuid4())
             # Create the knowledge base
             kb = KnowledgeBase(
                 name=kb_data.name,
                 description=kb_data.description,
                 rag_config_id=rag_config.id,
                 extra_info=kb_data.extra_info,
-                specific_id=specific_id,
+                uuid=kb_uuid,
                 is_active=True
             )
             session.add(kb)
             session.flush()
             
             try:
-                self.qdrant_client.create_collection(specific_id, vector_size=768)
-                self.s3_client.create_bucket(specific_id)
+                self.qdrant_client.create_collection(kb_uuid, vector_size=768)
+                self.s3_client.create_bucket(kb_uuid)
                 session.commit()
                 session.refresh(kb)
                 return kb
@@ -170,46 +170,34 @@ class KnowledgeBaseService:
     ) -> DocumentResponse:
         """Create a new document and store it in S3"""
         try:
-            allowed_extensions = global_config.READER_CONFIG.supported_formats
-            max_file_size = global_config.READER_CONFIG.max_file_size
-            file_content = bytearray()
+            file_content = await file.read()
             filename = file.filename.lower()
-            
-            if not filename.endswith(allowed_extensions):
-                raise HTTPException(400, f"Unsupported file type. Allowed types: {allowed_extensions}")
-            
-            # Check file size
-            file_size = 0
-            
-            # Read file in chunks to handle large files
-            chunk_size = 1024 * 1024  # 1MB chunks
-            while True:
-                chunk = await file.read(chunk_size)
-                if not chunk:
-                    break
-                file_size += len(chunk)
-                if file_size > max_file_size:
-                    raise HTTPException(400, f"File too large. Maximum size: {max_file_size/1024/1024}MB")
-                file_content.extend(chunk)
-                
-            
+  
             kb = session.query(KnowledgeBase).filter(KnowledgeBase.id == kb_id).first()
             if not kb:
                 raise HTTPException(status_code=404, detail="Knowledge base not found")
                 
             task = upload_document.delay(
-                    bucket_name= kb.specific_id,
+                    bucket_name= kb.uuid,
                     file_content= file_content,
                     filename=filename
             )
-            if task.status != "success":
-                raise HTTPException(500, f"Task {task.task_id} Failed to upload document: {task.message}")
+            try:
+                task_result: TaskResponse = TaskResponse(
+                    **task.get(timeout=30)
+                )  # Consider making this async in production
+            except Exception as task_error:
+                raise HTTPException(
+                    status_code=500, detail=f"Task processing failed: {str(task_error)}"
+                )
+            if task_result.status != "success":
+                raise HTTPException(500, f"Task {task_result.task_id} Failed to upload document: {task_result.message}")
             # Create document record
             document = Document(
                 knowledge_base_id=kb_id,
-                task_id=task.task_id,
-                name=task.file_name,
-                source=task.file_path_in_s3,
+                task_id=task_result.task_id,
+                name=filename,
+                source=task_result.task_info.get("file_source",filename),
                 extension=filename.split(".")[-1],
                 status=DocumentStatusType.UPLOADED,
                 extra_info=doc_data.extra_info,
@@ -290,7 +278,7 @@ class KnowledgeBaseService:
                 chunks = rag_manager.process_document(
                     document=document,
                     document_id=doc.id,
-                    collection_name=kb.specific_id,
+                    collection_name=kb.uuid,
                     metadata={
                         **document.metadata,
                         "file_path": doc.name,
@@ -371,7 +359,7 @@ class KnowledgeBaseService:
         if not document:
             raise HTTPException(status_code=404, detail="Document not found")
         
-        # Get the knowledge base to access specific_id for collection name
+        # Get the knowledge base to access kb_uuid for collection name
         kb = session.query(KnowledgeBase).filter(KnowledgeBase.id == kb_id).first()
         if not kb:
             raise HTTPException(status_code=404, detail="Knowledge base not found")
@@ -381,7 +369,7 @@ class KnowledgeBaseService:
             await self._delete_document_file_from_s3(document)
             
             # Step 2: Delete from vector store
-            await self._delete_document_from_vector_store(kb.specific_id, document_id)
+            await self._delete_document_from_vector_store(kb.uuid, document_id)
             
             # Step 3: Delete from database (this cascades to document chunks)
             session.delete(document)
@@ -407,15 +395,15 @@ class KnowledgeBaseService:
         try:   
             # Step 1: Delete the Qdrant collection for this KB
             try:
-                self.qdrant_client.delete_collection(kb.specific_id)
-                logger.info(f"Deleted Qdrant collection: {kb.specific_id}")
+                self.qdrant_client.delete_collection(kb.uuid)
+                logger.info(f"Deleted Qdrant collection: {kb.uuid}")
             except Exception as e:
                 logger.error(f"Error deleting Qdrant collection: {str(e)}")
                            
             # Step 2: Delete the S3 bucket for this KB
             try:
-                self.s3_client.remove_bucket(kb.specific_id)
-                logger.info(f"Deleted S3 bucket: {kb.specific_id}")
+                self.s3_client.remove_bucket(kb.uuid)
+                logger.info(f"Deleted S3 bucket: {kb.uuid}")
             except Exception as e:
                 logger.error(f"Error deleting S3 bucket: {str(e)}")
             
