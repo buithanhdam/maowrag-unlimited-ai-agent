@@ -8,7 +8,7 @@ from llama_index.core import SimpleDirectoryReader
 from tqdm import tqdm
 from src.config import SUPPORTED_FILE_EXTENSIONS, SUPPORTED_MEDIA_FILE_EXTENSIONS
 from src.logger import get_formatted_logger
-
+from .media import DocumentConverterResult
 load_dotenv()
 logger = get_formatted_logger(__file__)
 
@@ -87,23 +87,27 @@ def parse_multiple_files(
     files_to_process = tqdm(valid_files, desc="Starting parse files", unit="file") if show_progress else valid_files
 
     for file in files_to_process:
-        file_suffix = Path(file).suffix.lower()
+        file_path_obj = Path(file)
+        file_suffix = file_path_obj.suffix.lower()
         file_extractor = extractor[file_suffix]
 
         if file_suffix in SUPPORTED_MEDIA_FILE_EXTENSIONS:
-            result = file_extractor.convert(file)
+            result: DocumentConverterResult = file_extractor.convert(file)
+            metadata={
+                "title": result.title,
+                "created_at": datetime.now().isoformat(),
+                "file_name": file_path_obj.name,
+            }
+            if result.metadata["image_base64"]:
+                metadata["image_origin"] = result.metadata["image_base64"]
             documents.append(
                 Document(
                     text=result.text_content,
-                    metadata={
-                        "title": result.title,
-                        "created_at": datetime.now().isoformat(),
-                        "file_name": Path(file).name,
-                    },
+                    metadata=metadata,
                 )
             )
         else:
-            results = file_extractor.load_data(file)
+            results = file_extractor.load_data(file_path_obj)
             documents.extend(results)
 
     logger.info(f"Parse files successfully with {files_or_folder} split to {len(documents)} documents")

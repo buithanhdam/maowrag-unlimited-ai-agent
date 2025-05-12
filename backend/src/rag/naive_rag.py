@@ -23,9 +23,11 @@ class NaiveRAG(BaseRAG):
         try:
             
             # Step 1: Convert user query to embedding
+            logger.info("[Normal Search] - Step 1: Convert user query to embedding")
             query_embedding = self.dense_embedding_model.get_text_embedding(query)
             
             # Step 2: Perform vector search using query embedding
+            logger.info("[Normal Search] - Step 2: Perform vector search using query embedding")
             results = self.qdrant_client.search_vector(
                 collection_name=collection_name,
                 vector=query_embedding,
@@ -39,9 +41,16 @@ class NaiveRAG(BaseRAG):
                 ),
             )
             
-            contexts = [result.payload["text"] for result in results]
+            # Step 3: Filter results based on score threshold
+            logger.info("[Normal Search] - Step 3: Filter results based on score threshold")
+            contexts = [
+                result.payload["text"]
+                for result in results
+                if result.score >= score_threshold
+            ] or [result.payload["text"] for result in results]
             
-            # Step 3: Generate final response
+            # Step 4: Generate final response
+            logger.info("[Normal Search] - Step 4: Generate final response")
             prompt = f"""Given the following context and question, provide a comprehensive answer based solely on the provided context. If the context doesn't contain relevant information, say so.
 
 Context:

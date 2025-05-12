@@ -13,3 +13,6 @@ def get_db():
         yield db
     finally:
         db.close()
+def get_db_session_local():
+    """Function to get a database session for Celery tasks"""
+    return SessionLocal()

@@ -168,6 +168,7 @@ class Document(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     knowledge_base_id = Column(Integer, ForeignKey("knowledge_bases.id"))
+    task_id = Column(Integer)
     name = Column(String(255), nullable=False)
     source = Column(String(255))
     extension = Column(String(50))

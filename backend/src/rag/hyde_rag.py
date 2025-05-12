@@ -20,6 +20,7 @@ class HyDERAG(BaseRAG):
     ) -> str:
         try:
             # Step 1: Generate hypothetical document using LLM
+            logger.info("[HYDE Search] - Step 1: Generate hypothetical document using LLM")
             hypothetical_prompt = f"""Generate a short summary hypothetical document that could answer the following query:
             Query:{query}
             Hypothetical Document:"""
@@ -27,11 +28,13 @@ class HyDERAG(BaseRAG):
             logger.info(hypothetical_document)
             
             # Step 2: Convert hypothetical document to embedding
+            logger.info("[HYDE Search] - Step 2: Convert hypothetical document to embedding")
             dense_embedding = self.dense_embedding_model.get_text_embedding(hypothetical_document)
             sparse_embedding = self.sparse_embedding_model.embed(hypothetical_document)
             sparse_embedding = list(sparse_embedding)[0].as_object()
             
             # Step 3: Perform hybrid vector search using dense and sparse embeddings (BM25) with hypothetical embedding
+            logger.info("[HYDE Search] - Step 3: Perform hybrid vector search using dense and sparse embeddings (BM25) with hypothetical embedding")
             normal_results = self.qdrant_client.hybrid_search_vector(
                 collection_name=collection_name,
                 dense_vector=dense_embedding,
@@ -46,9 +49,17 @@ class HyDERAG(BaseRAG):
                 ),
             )
             logger.info(normal_results)
-            contexts = [result.payload["text"] for result in normal_results]
+            # Step 4: Filter results based on score threshold
             
-             # Step 4: Generate final response
+            logger.info("[HYDE Search] - Step 4: Filter results based on score threshold")
+            contexts = [
+                result.payload["text"]
+                for result in normal_results
+                if result.score >= score_threshold
+            ] or [result.payload["text"] for result in normal_results]
+             
+            # Step 5: Generate final response
+            logger.info("[HYDE Search] - Step 5: Generate final responsed")
             prompt = f"""Given the following context and question, provide a comprehensive answer based solely on the provided context. If the context doesn't contain relevant information, say so.
 
 Context:

@@ -51,7 +51,7 @@ class ReaderConfig(BaseModel):
     enable_tables: bool = True
     max_pages: int = 100
     max_file_size: int = 20971520  # 20MB
-    supported_formats: list[str] = ['.pdf']  # For future extension
+    supported_formats: list[str] = SUPPORTED_FILE_EXTENSIONS +  SUPPORTED_MEDIA_FILE_EXTENSIONS # For future extension
 
 class RAGConfig(BaseModel):
     """Configuration for RAG Manager"""
@@ -92,11 +92,9 @@ class Settings:
     
     MYSQL_USER : str=os.environ.get('MYSQL_USER', 'user')
     MYSQL_PASSWORD : str=os.environ.get('MYSQL_PASSWORD', '1')
-    MYSQL_ROOT_PASSWORD : str=os.environ.get('MYSQL_ROOT_PASSWORD', 'root')
     MYSQL_HOST : str=os.environ.get('MYSQL_HOST', 'mysql')
     MYSQL_PORT : str=os.environ.get('MYSQL_PORT', '3306')
     MYSQL_DB : str=os.environ.get('MYSQL_DB', 'ragagent')
-    MYSQL_ALLOW_EMPTY_PASSWORD: str=os.environ.get('MYSQL_ALLOW_EMPTY_PASSWORD', 'yes')
     
     # Component configurations
     READER_CONFIG: ReaderConfig = ReaderConfig()
@@ -109,6 +107,9 @@ class Settings:
     AWS_ENDPOINT_URL:str="https://s3.ap-southeast-2.amazonaws.com"
     
     TAVILY_API_KEY:str = os.environ.get('TAVILY_API_KEY', '')
+    
+    # Celery configurations
+    CELERY_BROKER_URL: str = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
     # LLM configurations
     OPENAI_CONFIG: LLMConfig = LLMConfig(
         api_key=os.environ.get('OPENAI_API_KEY', ''),
