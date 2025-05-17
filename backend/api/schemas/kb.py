@@ -2,7 +2,7 @@
 from typing import Any, Dict, Optional, List
 from pydantic import BaseModel, Field
 from datetime import datetime
-from src.db.models import DocumentStatusType, RAGType
+from backend.src.db.sql import DocumentStatusType, RAGType
 
 class RagConfigBase(BaseModel):
     """Base model for RAG configuration"""

@@ -2,7 +2,7 @@
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from src.db.models import AgentType
+from backend.src.db.sql import AgentType
 from api.schemas.kb import KnowledgeBaseResponse
 
 class AgentBase(BaseModel):

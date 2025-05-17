@@ -3,7 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 from typing import List, Optional
 from llama_index.core.llms import ChatMessage
-from src.db.models import KnowledgeBase,Conversation, Message, AgentConversation, Agent, LLMConfig, Communication, CommunicationConversation
+from src.db import KnowledgeBase,Conversation, Message, AgentConversation, Agent, LLMConfig, Communication, CommunicationConversation
 from src.enums import ( LLMProviderType, MessageType, RoleType, AgentType)
 from api.schemas.chat import (
     CommunicationConversationCreate, ConversationCreate, ConversationUpdate,MessageCreate

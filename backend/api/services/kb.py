@@ -1,18 +1,15 @@
-import json
 import os
 from pathlib import Path
 import tempfile
-from typing import List, Optional, Dict, Any
+from typing import List, Dict
 import uuid
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, UploadFile
 from datetime import datetime
 from api.schemas.kb import (KnowledgeBaseCreate, KnowledgeBaseResponse, KnowledgeBaseUpdate,DocumentCreate,DocumentResponse)
 from src.rag.base import BaseRAG
-from src.db.models import (KnowledgeBase,RAGConfig,Document,DocumentChunk)
+from src.db import (KnowledgeBase,RAGConfig,Document,DocumentChunk, QdrantVectorDatabase, get_aws_s3_client)
 from src.enums import DocumentStatusType, LLMProviderType
-from src.db.qdrant import QdrantVectorDatabase
-from src.db.aws import S3Client, get_aws_s3_client
 from src.readers import parse_multiple_files, FileExtractor
 from src.rag.rag_manager import RAGManager
 from src.tasks.document_task import upload_document, TaskResponse

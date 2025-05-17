@@ -1,6 +1,63 @@
 from typing import Any, List, Optional
 from llama_index.core.llms import ChatMessage
+from dataclasses import dataclass, field
+import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Type, Union
 
+from pydantic import BaseModel
+# Base Types and Data Classes
+class AgentType(Enum):
+    DEFAULT = "DEFAULT"
+    CODING = "CODING"
+    REACT = "REACT"
+    REFLECTION = "REFLECTION"
+
+
+@dataclass
+class AgentProcessingResult:
+    user_input: str
+    agent_id: str
+    agent_name: str
+    user_id: str
+    session_id: str
+    additional_params: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class AgentResponse:
+    metadata: AgentProcessingResult
+    output: Union[Any, str]
+    streaming: bool
+
+
+class AgentCallbacks:
+    def on_llm_new_token(self, token: str) -> None:
+        pass
+
+    def on_agent_start(self, agent_name: str) -> None:
+        pass
+
+    def on_agent_end(self, agent_name: str) -> None:
+        pass
+
+
+@dataclass
+class AgentOptions:
+    name: str
+    description: str
+    id: Optional[str] = None
+    region: Optional[str] = None
+    save_chat: bool = True
+    callbacks: Optional[AgentCallbacks] = None
+    structured_output: Optional[Type[BaseModel]] = None
+
+
+@dataclass
+class Message:
+    role: str
+    content: List[Dict[str, str]]
+    timestamp: datetime = field(default_factory=datetime.datetime.now)
 class ChatHistory:
     def __init__(self, initial_messages: List[ChatMessage], max_length: int):
         self.messages = initial_messages
@@ -47,18 +104,15 @@ class ExecutionPlan:
     def get_progress(self) -> str:
         completed = sum(1 for step in self.steps if step.completed)
         return f"Progress: {completed}/{len(self.steps)} steps completed"
-
-def clean_json_response(response: str) -> str:
-    """Clean and extract JSON from LLM response"""
-    # Remove any markdown code block markers
-    response = response.replace("```json", "").replace("```", "").strip()
+class PlanContext:
+    def __init__(self):
+        self.memory = {}
+        self.results = []
         
-    # Find the first '{' and last '}'
-    start = response.find('{')
-    end = response.rfind('}')
+    def add_result(self, step_name: str, result: Any):
+        self.results.append(result)
+        self.memory[step_name] = result
         
-    if start == -1 or end == -1:
-        raise ValueError("No valid JSON object found in response")
-            
-    # Extract just the JSON object
-    return response[start:end + 1]
+    def get_context(self) -> str:
+        # Tạo ngữ cảnh cho bước tiếp theo dựa trên memory
+        return "context_string"

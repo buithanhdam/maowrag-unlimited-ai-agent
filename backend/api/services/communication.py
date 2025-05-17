@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from typing import List, Optional
 from datetime import datetime
 
-from src.db.models import (
+from src.db import (
     Communication, CommunicationAgentMember, 
     CommunicationConversation, Agent, Conversation, AgentConversation
 )

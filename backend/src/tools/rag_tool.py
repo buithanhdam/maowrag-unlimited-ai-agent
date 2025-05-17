@@ -1,5 +1,5 @@
 from llama_index.core.tools import FunctionTool
-from src.db.models import KnowledgeBase,RAGConfig
+from src.db import KnowledgeBase,RAGConfig
 from src.config import global_config
 from src.enums import LLMProviderType
 from typing import List
@@ -25,7 +25,7 @@ class RAGTool:
                 query: Search query
                 limit: Maximum number of results to return
             """
-            from src.rag.rag_manager import RAGManager
+            from src.rag import RAGManager
             
             rag = RAGManager.create_rag(
                 rag_type=rag_type,

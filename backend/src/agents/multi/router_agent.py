@@ -1,14 +1,15 @@
 from typing import Any, Dict, List, Optional, Tuple, Generator, AsyncGenerator
 from llama_index.core.llms import ChatMessage
 from llama_index.core.tools import FunctionTool
-from src.llm import BaseLLM
-from src.logger import get_formatted_logger
 import json
 import asyncio
-from src.agents.base import BaseAgent, AgentOptions
-from src.agents.utils import clean_json_response, ChatHistory
 
-logger = get_formatted_logger(__file__)
+from src.agents.design import (
+    AgentOptions,clean_json_response
+)
+from src.agents.base import BaseAgent
+from .base import BaseMultiAgent
+from src.llm import BaseLLM
 
 CLASSIFY_PROMPT = """\
 You are AgentMatcher, an intelligent assistant designed to analyze user queries and match them with 
@@ -67,37 +68,11 @@ Maintain the same level of expertise and style as the original agent, but fix th
 And only give the answer about User Query asked.
 """
 
-class ManagerAgent(BaseAgent):
+class RouterAgent(BaseMultiAgent):
     def __init__(self, llm: BaseLLM, options: AgentOptions, system_prompt:str = "", tools: List[FunctionTool] = [],validation_threshold = 0.7):
-        super().__init__(llm, options, system_prompt, tools)
-        self.agent_registry: Dict[str, BaseAgent] = {}
-        self.validation_threshold = validation_threshold # Minimum validation score to accept response
-        
-    def register_agent(self, agent: BaseAgent) -> None:
-        """Register a new agent with the manager"""
-        self.agent_registry[agent.id] = agent
-        logger.info(f"Registered agent: {agent.id} ({agent.name})")
+        super().__init__(llm, options, system_prompt, tools, validation_threshold)
 
-    def _get_agent_descriptions(self) -> str:
-        """Generate formatted descriptions of all registered agents"""
-        descriptions = []
-        for agent_id, agent in self.agent_registry.items():
-            descriptions.append(f"- {agent.name} (ID: {agent_id}): {agent.description}")
-        return "\n".join(descriptions)
-
-    def _format_chat_history(self, chat_history: List[ChatMessage]) -> str:
-        """Format recent chat history for context"""
-        if not chat_history:
-            return "No recent chat history"
-        
-        # Take last 3 messages for context
-        recent_msgs = chat_history[-6:] if len(chat_history) > 6 else chat_history
-        formatted = []
-        for msg in recent_msgs:
-            formatted.append(f"{msg.role}: {msg.content}")
-        return "\n".join(formatted)
-
-    async def classify_request(
+    async def _classify_request(
         self,
         user_input: str,
         chat_history: List[ChatMessage]
@@ -111,7 +86,7 @@ class ManagerAgent(BaseAgent):
             )
             
             if len(self.agent_registry) == 0:
-                logger.warning("No agents registered with manager")
+                self._log_warning("No agents registered with manager")
                 return None, 0.0, "No agents available"
                 
             # Get classification from LLM
@@ -129,27 +104,27 @@ class ManagerAgent(BaseAgent):
                 selected_agent = self.agent_registry.get(selected_agent_id)
                 
                 if selected_agent:
-                    logger.info(
+                    self._log_info(
                         f"Request classified to {selected_agent.name} "
                         f"(confidence: {confidence:.2f}). Reasoning: {reasoning}"
                     )
                     return selected_agent, confidence, reasoning
                 else:
-                    logger.warning(f"Selected agent {selected_agent_id} not found in registry")
+                    self._log_warning(f"Selected agent {selected_agent_id} not found in registry")
                     default_agent = next(iter(self.agent_registry.values())) if self.agent_registry else None
                     return default_agent, 0.5, f"Selected agent {selected_agent_id} not found, using default"
                     
             except (json.JSONDecodeError, KeyError) as e:
-                logger.error(f"Error parsing LLM classification response: {str(e)}")
+                self._log_error(f"Error parsing LLM classification response: {str(e)}")
                 default_agent = next(iter(self.agent_registry.values())) if self.agent_registry else None
                 return default_agent, 0.5, f"Error in classification: {str(e)}"
                 
         except Exception as e:
-            logger.error(f"Error during request classification: {str(e)}")
+            self._log_error(f"Error during request classification: {str(e)}")
             default_agent = next(iter(self.agent_registry.values())) if self.agent_registry else None
             return default_agent, 0.5, f"Exception in classification: {str(e)}"
 
-    async def validate_response(
+    async def _validate_response(
         self,
         user_query: str,
         agent_name: str,
@@ -171,11 +146,11 @@ class ManagerAgent(BaseAgent):
             try:
                 validation_result = json.loads(validation_response)
                 if verbose:
-                    logger.info(f"Validation result: {validation_result}")
+                    self._log_info(f"Validation result: {validation_result}")
                 return validation_result
             except json.JSONDecodeError as e:
                 if verbose:
-                    logger.error(f"Error parsing validation response: {str(e)}")
+                    self._log_error(f"Error parsing validation response: {str(e)}")
                 return {
                     "is_valid": True,  # Default to accepting the response
                     "score": 0.75,
@@ -186,7 +161,7 @@ class ManagerAgent(BaseAgent):
                 
         except Exception as e:
             if verbose:
-                logger.error(f"Error during response validation: {str(e)}")
+                self._log_error(f"Error during response validation: {str(e)}")
             return {
                 "is_valid": True,  # Default to accepting the response
                 "score": 0.75,
@@ -195,7 +170,7 @@ class ManagerAgent(BaseAgent):
                 "refinement_suggestions": ""
             }
             
-    async def refine_response(
+    async def _refine_response(
         self,
         user_query: str,
         agent_response: str,
@@ -210,15 +185,14 @@ class ManagerAgent(BaseAgent):
                 agent_response=agent_response,
                 validation_feedback=json.dumps(validation_feedback, indent=2)
             )
-            
-            refined_response = await self.llm.achat(refinement_prompt,chat_history=chat_history)
+            refined_response = await self._output_parser(refinement_prompt,chat_history)
             if verbose:
-                logger.info(f"Response refined successfully")
+                self._log_info(f"Response refined successfully")
             return refined_response
             
         except Exception as e:
             if verbose:
-                logger.error(f"Error during response refinement: {str(e)}")
+                self._log_error(f"Error during response refinement: {str(e)}")
             return agent_response  # Return original response if refinement fails
 
     async def run(
@@ -235,13 +209,13 @@ class ManagerAgent(BaseAgent):
                 self.callbacks.on_agent_start(self.name)
                 
             # Classify the request
-            selected_agent, confidence, reasoning = await self.classify_request(query, chat_history)
-            
+            selected_agent, confidence, reasoning = await self._classify_request(query, chat_history)
+            await asyncio.sleep(2)
             if not selected_agent:
                 if verbose:
-                    logger.info("No appropriate agent found, falling back to LLM")
+                    self._log_info("No appropriate agent found, falling back to LLM")
                 response = await self.llm.achat("Answer this question: " + query, chat_history=chat_history)
-                
+                await asyncio.sleep(2)
                 if self.callbacks:
                     self.callbacks.on_agent_end(self.name)
                 return response
@@ -249,19 +223,19 @@ class ManagerAgent(BaseAgent):
             # If confidence is too low, maybe ask for clarification or fall back to LLM
             if confidence < 0.6:
                 if verbose:
-                    logger.info(
+                    self._log_info(
                         f"Low confidence classification ({confidence:.2f}). "
                         f"Falling back to LLM."
                     )
                 response = await self.llm.achat("Answer this question: " + query, chat_history=chat_history)
-                
+                await asyncio.sleep(2)
                 if self.callbacks:
                     self.callbacks.on_agent_end(self.name)
                 return response
             
             # Log the classification
             if verbose:
-                logger.info(
+                self._log_info(
                     f"Request classified to {selected_agent.name} "
                     f"with confidence {confidence:.2f}"
                 )
@@ -273,34 +247,34 @@ class ManagerAgent(BaseAgent):
                 chat_history=chat_history,
                 **additional_params
             )
-            
+            await asyncio.sleep(2)
             # Validate the response
-            validation_result = await self.validate_response(
+            validation_result = await self._validate_response(
                 user_query=query,
                 agent_name=selected_agent.name,
                 agent_response=agent_response,
                 chat_history=chat_history,
                 verbose=verbose
             )
-            
+            await asyncio.sleep(2)
             if verbose:
-                logger.info(f"Validation score: {validation_result['score']:.2f}")
+                self._log_info(f"Validation score: {validation_result['score']:.2f}")
                 
             # Check if refinement is needed
             if (validation_result.get("needs_refinement", False) and 
                 validation_result.get("score", 1.0) < self.validation_threshold):
                 
                 if verbose:
-                    logger.info(f"Refining response based on validation feedback")
+                    self._log_info(f"Refining response based on validation feedback")
                 
-                refined_response = await self.refine_response(
+                refined_response = await self._refine_response(
                     user_query=query,
                     agent_response=agent_response,
                     validation_feedback=validation_result,
                     verbose=verbose,
                     chat_history=chat_history
                 )
-                
+                await asyncio.sleep(2)
                 final_response = refined_response
             else:
                 final_response = agent_response
@@ -311,7 +285,7 @@ class ManagerAgent(BaseAgent):
             return final_response
             
         except Exception as e:
-            logger.error(f"Error processing request: {str(e)}")
+            self._log_error(f"Error processing request: {str(e)}")
             if self.callbacks:
                 self.callbacks.on_agent_end(self.name)
                 
@@ -319,21 +293,6 @@ class ManagerAgent(BaseAgent):
                 "I encountered an error while processing your request. "
                 "Please try again or rephrase your question."
             )
-
-    async def get_agent_status(self) -> Dict[str, Any]:
-        """Get status information about all registered agents"""
-        return {
-            "total_agents": len(self.agent_registry),
-            "registered_agents": [
-                {
-                    "id": agent_id,
-                    "name": agent.name,
-                    "description": agent.description,
-                    "status": "active"  # Could be expanded to check actual agent status
-                }
-                for agent_id, agent in self.agent_registry.items()
-            ]
-        }
         
     # Required BaseAgent implementations
     async def achat(
@@ -417,7 +376,7 @@ class ManagerAgent(BaseAgent):
                 await asyncio.sleep(0.01)  # Small delay to simulate streaming
                     
         except Exception as e:
-            logger.error(f"Error in streaming: {str(e)}")
+            self._log_error(f"Error in streaming: {str(e)}")
             raise e
                 
         finally:

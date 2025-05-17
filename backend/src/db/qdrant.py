@@ -1,6 +1,6 @@
-import sys
-from src.logger import get_formatted_logger
 from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent.parent))
+import sys
 import logging
 from abc import ABC, abstractmethod
 from qdrant_client.http import models
@@ -16,11 +16,13 @@ from tenacity import (
     before_sleep_log,
     retry_if_exception_type,
 )
-
-sys.path.append(str(Path(__file__).parent.parent.parent))
 from qdrant_client.models import ScoredPoint
+from qdrant_client.models import ScoredPoint
+
+from src.logger import get_formatted_logger
 from src.config import QdrantPayload
 from src.logger import get_formatted_logger
+
 logger = get_formatted_logger(__file__)
 
 
@@ -113,16 +115,15 @@ class QdrantVectorDatabase(BaseVectorDatabase):
                 collection_name,
                 vectors_config={
                     "dense": models.VectorParams(
-                        size=vector_size,
-                        distance=self.distance
-                        ),
+                        size=vector_size, distance=self.distance
+                    ),
                     "late-interaction": models.VectorParams(
                         size=vector_size,
                         distance=self.distance,
                         multivector_config=models.MultiVectorConfig(
                             comparator=models.MultiVectorComparator.MAX_SIM
                         ),
-                    )
+                    ),
                 },
                 sparse_vectors_config={
                     "sparse": models.SparseVectorParams(
@@ -145,7 +146,7 @@ class QdrantVectorDatabase(BaseVectorDatabase):
         collection_name: str,
         vector_id: str,
         dense_vector: List[float],
-        sparse_vector:dict[str, NumpyArray],
+        sparse_vector: dict[str, NumpyArray],
         payload: QdrantPayload,
     ):
         """
@@ -168,16 +169,17 @@ class QdrantVectorDatabase(BaseVectorDatabase):
                     id=vector_id,
                     payload=payload.model_dump(),
                     vector={
-                        "dense":dense_vector,
+                        "dense": dense_vector,
                         "sparse": models.SparseVector(
-                        indices=sparse_vector.get("indices",[]), values=sparse_vector.get("values",[])
-                    )
+                            indices=sparse_vector.get("indices", []),
+                            values=sparse_vector.get("values", []),
+                        ),
                     },
                 )
             ],
         )
 
-    def delete_vector(self, collection_name: str, document_id: str|int):
+    def delete_vector(self, collection_name: str, document_id: str | int):
         """
         Delete a vector from the collection
 
@@ -228,14 +230,13 @@ class QdrantVectorDatabase(BaseVectorDatabase):
             logger.error(f"Error deleting collection: {str(e)}")
             raise e
 
-    
     def search_vector(
         self,
         collection_name: str,
         vector: list[float],
         search_params: models.SearchParams,
-        limit :int = 5,
-        using="dense"
+        limit: int = 5,
+        using="dense",
     ) -> List[ScoredPoint]:
         """
         Search for a vector in the collection
@@ -246,23 +247,23 @@ class QdrantVectorDatabase(BaseVectorDatabase):
         Returns:
             List[models.PointStruct]: List of points
         """
-        
+
         return self.client.query_points(
             collection_name=collection_name,
             query=vector,
             search_params=search_params,
             with_payload=True,
             using=using,
-            limit=limit
+            limit=limit,
         ).points
-    
+
     def hybrid_search_vector(
         self,
         collection_name: str,
         dense_vector: List[float],
-        sparse_vector:dict[str, NumpyArray],
+        sparse_vector: dict[str, NumpyArray],
         search_params: models.SearchParams,
-        limit :int = 5,
+        limit: int = 5,
     ) -> List[ScoredPoint]:
         """
         Hybrid Search for a vector in the collection
@@ -286,8 +287,8 @@ class QdrantVectorDatabase(BaseVectorDatabase):
                 # vectors only.
                 models.Prefetch(
                     query=models.SparseVector(
-                        indices=sparse_vector.get("indices",[]),
-                        values=sparse_vector.get("values",[])
+                        indices=sparse_vector.get("indices", []),
+                        values=sparse_vector.get("values", []),
                     ),
                     using="sparse",
                     limit=limit,
@@ -298,16 +299,16 @@ class QdrantVectorDatabase(BaseVectorDatabase):
             ),
             search_params=search_params,
             with_payload=True,
-            limit=limit
+            limit=limit,
         ).points
-        
+
     def hybrid_search_multi_vector(
         self,
         collection_name: str,
         dense_vectors: List[List[float]],
-        sparse_vectors:List[dict[str, NumpyArray]],
+        sparse_vectors: List[dict[str, NumpyArray]],
         search_params: models.SearchParams,
-        limit :int = 5,
+        limit: int = 5,
     ) -> List[ScoredPoint]:
         """
         Hybrid Search for multi vector in the collection
@@ -331,8 +332,8 @@ class QdrantVectorDatabase(BaseVectorDatabase):
             prefetchs.append(
                 models.Prefetch(
                     query=models.SparseVector(
-                        indices=sparse_vector.get("indices",[]),
-                        values=sparse_vector.get("values",[])
+                        indices=sparse_vector.get("indices", []),
+                        values=sparse_vector.get("values", []),
                     ),
                     using="sparse",
                     limit=limit,
@@ -346,5 +347,5 @@ class QdrantVectorDatabase(BaseVectorDatabase):
             ),
             search_params=search_params,
             with_payload=True,
-            limit=limit
+            limit=limit,
         ).points
