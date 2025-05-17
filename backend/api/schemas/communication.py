@@ -2,6 +2,7 @@
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+from src.enums import MultiAgentType
 from .agent import AgentResponse
 
 class CommunicationBase(BaseModel):
@@ -9,6 +10,7 @@ class CommunicationBase(BaseModel):
     name: str
     description: Optional[str] = None
     configuration: Optional[Dict[str, Any]] = None
+    type: Optional[MultiAgentType] =MultiAgentType.ROUTER
 
 class CommunicationCreate(CommunicationBase):
     """Create model for Communication"""
@@ -18,6 +20,7 @@ class CommunicationUpdate(BaseModel):
     """Update model for Communication"""
     name: Optional[str] = None
     description: Optional[str] = None
+    type: Optional[MultiAgentType] =MultiAgentType.ROUTER
     configuration: Optional[Dict[str, Any]] = None
     is_active: Optional[bool] = None
 
@@ -33,7 +36,6 @@ class CommunicationMemberBase(BaseModel):
     """Base model for Communication Member"""
     communication_id: int
     agent_id: int
-    role: Optional[str] = "member"
 
 class CommunicationMemberCreate(CommunicationMemberBase):
     """Create model for Communication Member"""
@@ -41,7 +43,7 @@ class CommunicationMemberCreate(CommunicationMemberBase):
 
 class CommunicationMemberUpdate(BaseModel):
     """Update model for Communication Member"""
-    role: Optional[str] = None
+    pass
 
 class CommunicationMemberResponse(CommunicationMemberBase):
     """Response model for Communication Member"""
@@ -52,6 +54,5 @@ class CommunicationMemberResponse(CommunicationMemberBase):
 class CommunicationMessageCreate(BaseModel):
     """Create model for Communication Message"""
     conversation_id: int
-    role: str
     content: str
     communication_id: int  # Added to identify the communication context

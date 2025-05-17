@@ -179,7 +179,7 @@ class PlanningAgent(BaseAgent):
         try:
             # Generate plan
             plan = await self._get_initial_plan(query, verbose, chat_history)
-            await asyncio.sleep(2)
+            await asyncio.sleep(0.1)
 
             if verbose:
                 self._log_info("\nExecuting plan...")
@@ -212,7 +212,7 @@ class PlanningAgent(BaseAgent):
                             query=step.description, chat_history=chat_history
                         )
                         results.append(result)
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(0.1)
                 except Exception as e:
                     if verbose:
                         self._log_error(f"Error in step {step_num}: {str(e)}")
@@ -227,7 +227,7 @@ class PlanningAgent(BaseAgent):
 
             # Generate final summary
             final_result = await self._generate_summary(query, results, verbose, chat_history)
-            await asyncio.sleep(2)
+            await asyncio.sleep(0.1)
             return final_result
 
         except Exception as e:

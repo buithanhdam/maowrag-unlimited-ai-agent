@@ -184,7 +184,7 @@ class DailyFolderFileHandler(TimedRotatingFileHandler):
     def _update_filename(self):
         """Update the filename based on current date in UTC"""
         today = datetime.now().strftime('%Y-%m-%d')
-        folder_path = f"logs/{today}"
+        folder_path = os.path.join("logs", today)
         os.makedirs(folder_path, exist_ok=True)
         
         # Get the base filename (without path)

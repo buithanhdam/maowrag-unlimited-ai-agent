@@ -8,8 +8,8 @@ from src.enums import ( LLMProviderType, MessageType, RoleType, AgentType)
 from api.schemas.chat import (
     CommunicationConversationCreate, ConversationCreate, ConversationUpdate,MessageCreate
 )
-from src.agents import ReActAgent, AgentOptions, ReflectionAgent, ManagerAgent, BaseAgent
-from src.llm import UnifiedLLM # Import other LLM providers as needed
+from src.agents import PlanningAgent,ReflectionAgent, AgentOptions, RouterAgent, BaseAgent
+from src.llm import BaseLLM # Import other LLM providers as needed
 
 class ChatService:
     @staticmethod
@@ -17,8 +17,8 @@ class ChatService:
         """Create LLM instance based on provider and config"""
         provider = llm_config.llm_foundations.provider
         if provider == LLMProviderType.GOOGLE:
-            return UnifiedLLM(
-                llm_provider= LLMProviderType.GOOGLE,
+            return BaseLLM(
+                provider= LLMProviderType.GOOGLE,
                 model_id= llm_config.llm_foundations.model_id,
                 temperature= llm_config.temperature,
                 max_tokens= llm_config.max_tokens,
@@ -63,7 +63,7 @@ class ChatService:
                 tools=tools
             )
         else:
-            return ReActAgent(
+            return PlanningAgent(
                 llm=llm,
                 options=AgentOptions(
                     id=f"{"".join(str(agent.name).split(" ")).lower()}{agent.id}",
@@ -82,8 +82,8 @@ class ChatService:
             raise HTTPException(status_code=404, detail="Communication not found")
         agents : List[Agent] = communication.agents
         system_prompt="You are a intelligent matcher agent"
-        manager_agent = ManagerAgent(
-            llm=UnifiedLLM(system_prompt=system_prompt),
+        manager_agent = RouterAgent(
+            llm=BaseLLM(system_prompt=system_prompt),
             options=AgentOptions(
                 id="manager",
                 name="Manager",

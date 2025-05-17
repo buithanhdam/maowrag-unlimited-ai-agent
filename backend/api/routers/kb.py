@@ -4,7 +4,7 @@ from fastapi import APIRouter,status, Form, UploadFile, File, HTTPException, Dep
 from jsonschema import ValidationError
 from sqlalchemy.orm import Session
 from src.config import global_config
-from src.db.mysql import get_db
+from src.db import get_session
 from api.services.kb import KnowledgeBaseService
 from api.schemas.kb import (
     QueryRequest,
@@ -24,7 +24,7 @@ async def get_kb_service():
 @kb_router.post("/", response_model=KnowledgeBaseResponse)
 async def create_knowledge_base(
     kb_data: KnowledgeBaseCreate,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Create a new knowledge base with RAG configuration"""
@@ -34,7 +34,7 @@ async def create_knowledge_base(
 async def update_knowledge_base(
     kb_id: int,
     kb_data: KnowledgeBaseUpdate,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Update an existing knowledge base"""
@@ -44,7 +44,7 @@ async def update_knowledge_base(
 async def list_knowledge_bases(
     skip: int = 0,
     limit: int = 10,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """List all knowledge bases"""
@@ -53,7 +53,7 @@ async def list_knowledge_bases(
 @kb_router.get("/{kb_id}", response_model=KnowledgeBaseResponse)
 async def get_knowledge_base(
     kb_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Get a specific knowledge base"""
@@ -62,7 +62,7 @@ async def get_knowledge_base(
 @kb_router.delete("/{kb_id}")
 async def delete_knowledge_base(
     kb_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Delete a knowledge base and all its documents"""
@@ -71,7 +71,7 @@ async def delete_knowledge_base(
 @kb_router.get("/{kb_id}/documents", response_model=List[DocumentResponse])
 async def get_documents(
     kb_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Get all documents for a specific knowledge base"""
@@ -82,7 +82,7 @@ async def upload_document(
     kb_id: int,
     doc_data: str = Form(...),
     file: UploadFile = File(...),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Upload a document for a specific knowledge base"""
@@ -142,7 +142,7 @@ async def upload_document(
 async def process_document(
     kb_id: int,
     doc_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Process an uploaded document"""
@@ -157,7 +157,7 @@ async def process_document(
 async def delete_document(
     kb_id: int,
     document_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Delete a document from a knowledge base"""

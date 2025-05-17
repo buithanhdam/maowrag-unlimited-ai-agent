@@ -22,7 +22,7 @@ from src.enums import (
     MessageType,
     DocumentStatusType,
     ToolType,
-    RAGType,
+    RAGType,TaskStatusType,MultiAgentType,TaskType
 )
 from src.config import global_config
 from src.logger import get_formatted_logger
@@ -35,6 +35,7 @@ class Agent(Base):
     __tablename__ = "agents"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(200), unique=True, default=func.uuid4())
     foundation_id = Column(Integer, ForeignKey("llm_foundations.id"))
     config_id = Column(Integer, ForeignKey("llm_configs.id"))
     name = Column(String(100))
@@ -66,8 +67,10 @@ class Communication(Base):
     __tablename__ = "communications"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(200), unique=True, default=func.uuid4())
     name = Column(String(100))
     description = Column(Text)
+    type = Column(Enum(MultiAgentType), default=MultiAgentType.ROUTER)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     is_active = Column(Boolean, default=True)
@@ -93,7 +96,6 @@ class CommunicationAgentMember(Base):
         Integer, ForeignKey("communications.id"), primary_key=True
     )
     agent_id = Column(Integer, ForeignKey("agents.id"), primary_key=True)
-    role = Column(Enum(CommunicationRoleType))  # e.g., "leader", "member"
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -111,6 +113,7 @@ class LLMFoundation(Base):
     __tablename__ = "llm_foundations"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(200), unique=True, default=func.uuid4())
     provider = Column(Enum(LLMProviderType), nullable=False)
     model_id = Column(String(100), nullable=False, unique=True)
     description = Column(Text)
@@ -128,6 +131,7 @@ class LLMConfig(Base):
     __tablename__ = "llm_configs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(200), unique=True, default=func.uuid4())
     foundation_id = Column(Integer, ForeignKey("llm_foundations.id"))
     name = Column(String(100))
     temperature = Column(Float)
@@ -149,6 +153,7 @@ class Conversation(Base):
     __tablename__ = "conversations"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(200), unique=True, default=func.uuid4())
     title = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -172,6 +177,7 @@ class Message(Base):
     __tablename__ = "messages"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(200), unique=True, default=func.uuid4())
     conversation_id = Column(Integer, ForeignKey("conversations.id"))
     role = Column(Enum(RoleType))
     content = Column(Text)
@@ -193,6 +199,7 @@ class RAGConfig(Base):
     __tablename__ = "rag_configs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(200), unique=True, default=func.uuid4())
     rag_type = Column(Enum(RAGType))
     embedding_model = Column(String(100))
     similarity_type = Column(String(50))
@@ -211,9 +218,9 @@ class KnowledgeBase(Base):
     __tablename__ = "knowledge_bases"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(200), unique=True, default=func.uuid4())
     rag_config_id = Column(Integer, ForeignKey("rag_configs.id"))
     name = Column(String(100), nullable=False)
-    uuid = Column(String(200))
     description = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -227,11 +234,25 @@ class KnowledgeBase(Base):
         "Agent", secondary="agent_knowledge_bases", back_populates="knowledge_bases"
     )
 
+class Task(Base):
+    __tablename__ = "tasks"
+    id = Column(String(200), unique=True,primary_key=True, default=func.uuid4())
+    name = Column(String(50))
+    retry = Column(Integer)
+    type = Column(Enum(TaskType), default=TaskType.UPLOAD_DOCUMENT)
+    status = Column(Enum(TaskStatusType), default=TaskStatusType.PENDING)
+    extra_info = Column(JSON)
+    message = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    
 
 class Document(Base):
     __tablename__ = "documents"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(200), unique=True, default=func.uuid4())
     knowledge_base_id = Column(Integer, ForeignKey("knowledge_bases.id"))
     task_id = Column(String(255))
     name = Column(String(255), nullable=False)
@@ -240,6 +261,7 @@ class Document(Base):
     original_content = Column(Text, nullable=True)
     processed_content = Column(Text, nullable=True)
     status = Column(Enum(DocumentStatusType), default=DocumentStatusType.PENDING)
+    tokens = Column(Integer)
     extra_info = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -250,16 +272,17 @@ class Document(Base):
         "DocumentChunk", back_populates="document", cascade="all, delete-orphan"
     )
 
-
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(200), unique=True, default=func.uuid4())
     document_id = Column(Integer, ForeignKey("documents.id"))
     content = Column(Text, nullable=False)
     chunk_index = Column(Integer)
     dense_embedding = Column(JSON, nullable=True)
     sparse_embedding = Column(JSON, nullable=True)
+    tokens = Column(Integer)
     extra_info = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

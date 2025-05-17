@@ -20,6 +20,7 @@ from .sql import (
     Tool,
     AgentKnowledgeBase,
     AgentTool,
+    Task
 )
 __all__ = [
     "QdrantVectorDatabase", "BaseVectorDatabase",
@@ -42,5 +43,5 @@ __all__ = [
     "DocumentChunk",
     "Tool",
     "AgentKnowledgeBase",
-    "AgentTool",
+    "AgentTool","Task"
 ]

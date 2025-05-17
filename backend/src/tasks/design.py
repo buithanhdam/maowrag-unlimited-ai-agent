@@ -1,25 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import Any, Optional, List, Dict, Union
 import tiktoken
 import re
-
-class TaskBase(BaseModel):
-    """Base model for celery tasks"""
-    status: str = Field(
-        default="pending", description="Task status (success, error, pending)"
-    )
-    task_id: Optional[str] = Field(default=None, description="Celery task ID")
-    task_name: Optional[str] = Field(default=None, description="Task name")
-    task_retry: Optional[int] = Field(default=0, description="Task retry count")
-    task_info: Optional[Dict[str, Any]] = Field(
-        default=None, description="Additional task information"
-    )
-    message: Optional[str] = Field(default=None, description="Task message")
-
-
-class TaskResponse(TaskBase):
-    """Response model for celery tasks"""
-    pass
 
 def count_tokens_from_string(string: str, encoding_name: str = "cl100k_base") -> int:
     """Returns the number of tokens in a text string."""

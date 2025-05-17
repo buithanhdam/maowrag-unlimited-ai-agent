@@ -1,6 +1,7 @@
 from .base import BaseAgent
-from .single import PlanningAgent
+from .design import AgentOptions
+from .single import PlanningAgent,ReflectionAgent
 from .multi import ParallelAgent, RouterAgent
 __all__ = [
-    "BaseAgent","PlanningAgent","ParallelAgent", "RouterAgent"
+    "BaseAgent","PlanningAgent","ReflectionAgent","ParallelAgent", "RouterAgent","AgentOptions"
 ]

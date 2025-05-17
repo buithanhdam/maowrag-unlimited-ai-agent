@@ -2,7 +2,10 @@ import enum
 class CommunicationRoleType(enum.Enum):
     MANAGER = "manager"
     MEMBER = "member"
-
+class MultiAgentType(enum.Enum):
+    ROUTER = "router"
+    PARALLEL = "parallel"
+    
 class RoleType(enum.Enum):
     USER = "user"
     ASSISTANT = "assistant"
@@ -10,6 +13,7 @@ class RoleType(enum.Enum):
 
 class AgentType(enum.Enum):
     REACT = "react"
+    PLANNING = "planning"
     REFLECTION = "reflection"
     # Add more agent types as needed
 
@@ -22,9 +26,20 @@ class MessageType(enum.Enum):
     COMMUNICATION = "communication"
     AGENT = "agent"
 
-class DocumentStatusType(enum.Enum):
-    UPLOADED = "uploaded"
+class TaskType(enum.Enum):
+    UPLOAD_DOCUMENT = "upload"
+    PARSE_DOCUMENT = "parse_document"
+
+class TaskStatusType(enum.Enum):
     PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+class DocumentStatusType(enum.Enum):
+    PENDING = "pending"
+    UPLOADING = "uploading"
+    UPLOADED = "uploaded"
     PROCESSING = "processing"
     PROCESSED = "processed"
     FAILED = "failed"
