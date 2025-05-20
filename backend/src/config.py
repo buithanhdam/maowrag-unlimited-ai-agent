@@ -13,8 +13,6 @@ SUPPORTED_FILE_EXTENSIONS = [
     ".docx",
     ".html",
     ".txt",
-    ".csv",
-    ".xlsx",
     ".json",
     # ".pptx",
     ".md",
@@ -22,18 +20,7 @@ SUPPORTED_FILE_EXTENSIONS = [
     ".mbox",
     ".xml",
     ".rtf",
-    
 ]
-ACCEPTED_MIME_MEDIA_TYPE_PREFIXES = [
-    "audio/wav",
-    "audio/x-wav",
-    "audio/mpeg",
-    "audio/mp4",
-    "video/mp4",
-    "image/jpeg", 
-    "image/png",
-]
-
 SUPPORTED_MEDIA_FILE_EXTENSIONS = [
     ".wav",
     ".mp3",
@@ -41,7 +28,21 @@ SUPPORTED_MEDIA_FILE_EXTENSIONS = [
     ".mp4",
     ".jpg",
     ".jpeg",
-    ".png"
+    ".png",
+]
+SUPPORTED_EXCEL_FILE_EXTENSIONS = [
+    ".xlsx",
+    ".xls",
+    ".csv",
+]
+ACCEPTED_MIME_MEDIA_TYPE_PREFIXES = [
+    "audio/wav",
+    "audio/x-wav",
+    "audio/mpeg",
+    "audio/mp4",
+    "video/mp4",
+    "image/jpeg",
+    "image/png",
 ]
 class ReaderConfig(BaseModel):
     """Configuration for DoclingReader"""
@@ -51,7 +52,7 @@ class ReaderConfig(BaseModel):
     enable_tables: bool = True
     max_pages: int = 100
     max_file_size: int = 20971520  # 20MB
-    supported_formats: list[str] = SUPPORTED_FILE_EXTENSIONS +  SUPPORTED_MEDIA_FILE_EXTENSIONS # For future extension
+    supported_formats: list[str] = SUPPORTED_FILE_EXTENSIONS +  SUPPORTED_MEDIA_FILE_EXTENSIONS + SUPPORTED_EXCEL_FILE_EXTENSIONS # For future extension
 
 class RAGConfig(BaseModel):
     """Configuration for RAG Manager"""
@@ -64,7 +65,7 @@ class RAGConfig(BaseModel):
 class LLMConfig(BaseModel):
     """Configuration for Language Models"""
     api_key: str
-    llm_provider: LLMProviderType
+    provider: LLMProviderType
     model_id: str
     temperature: float = 0.7
     max_tokens: int = 2048
@@ -90,30 +91,30 @@ class Settings:
     GOOGLE_API_KEY: str = os.environ.get('GOOGLE_API_KEY', '')
     BACKEND_API_URL: str = os.environ.get('BACKEND_API_URL', 'http://localhost:8000')
     
-    MYSQL_USER : str=os.environ.get('MYSQL_USER', 'user')
-    MYSQL_PASSWORD : str=os.environ.get('MYSQL_PASSWORD', '1')
-    MYSQL_HOST : str=os.environ.get('MYSQL_HOST', 'mysql')
-    MYSQL_PORT : str=os.environ.get('MYSQL_PORT', '3306')
-    MYSQL_DB : str=os.environ.get('MYSQL_DB', 'ragagent')
+    DB_USER : str=os.environ.get('DB_USER', 'postgres')
+    DB_PASSWORD : str=os.environ.get('DB_PASSWORD', '1')
+    DB_HOST : str=os.environ.get('DB_HOST', 'postgres')
+    DB_PORT : str=os.environ.get('DB_PORT', '5432')
+    DB_NAME : str=os.environ.get('DB_NAME', 'maowrag')
     
     # Component configurations
     READER_CONFIG: ReaderConfig = ReaderConfig()
     RAG_CONFIG: RAGConfig = RAGConfig()
     
-    AWS_ACCESS_KEY_ID:str=os.environ.get('AWS_ACCESS_KEY_ID', ''),
-    AWS_SECRET_ACCESS_KEY:str=os.environ.get('AWS_SECRET_ACCESS_KEY', ''),
-    AWS_REGION_NAME:str=os.environ.get('AWS_REGION_NAME', ''),
-    AWS_STORAGE_TYPE:str=os.environ.get('AWS_STORAGE_TYPE', ''),
-    AWS_ENDPOINT_URL:str="https://s3.ap-southeast-2.amazonaws.com"
+    AWS_ACCESS_KEY_ID:str=os.environ.get('AWS_ACCESS_KEY_ID', '')
+    AWS_SECRET_ACCESS_KEY:str=os.environ.get('AWS_SECRET_ACCESS_KEY', '')
+    AWS_REGION_NAME:str=os.environ.get('AWS_REGION_NAME', '')
+    AWS_STORAGE_TYPE:str=os.environ.get('AWS_STORAGE_TYPE', '')
+    AWS_ENDPOINT_URL:str=os.environ.get('AWS_ENDPOINT_URL', "https://s3.ap-southeast-2.amazonaws.com")
     
     TAVILY_API_KEY:str = os.environ.get('TAVILY_API_KEY', '')
     
     # Celery configurations
-    CELERY_BROKER_URL: str = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+    CELERY_BROKER_URL: str = os.environ.get('CELERY_BROKER_URL', 'redis://redis:6379/0')
     # LLM configurations
     OPENAI_CONFIG: LLMConfig = LLMConfig(
         api_key=os.environ.get('OPENAI_API_KEY', ''),
-        llm_provider=LLMProviderType.OPENAI,
+        provider=LLMProviderType.OPENAI,
         model_id="gpt-3.5-turbo",
         temperature=0.7,
         max_tokens=2048,
@@ -122,7 +123,7 @@ class Settings:
     
     GEMINI_CONFIG: LLMConfig = LLMConfig(
         api_key=os.environ.get('GOOGLE_API_KEY', ''),
-        llm_provider=LLMProviderType.GOOGLE,
+        provider=LLMProviderType.GOOGLE,
         model_id="models/gemini-2.0-flash",
         temperature=0.8,
         max_tokens=2048,
@@ -131,7 +132,7 @@ class Settings:
     
     CLAUDE_CONFIG: LLMConfig = LLMConfig(
         api_key=os.environ.get('ANTHROPIC_API_KEY', ''),
-        llm_provider=LLMProviderType.ANTHROPIC,
+        provider=LLMProviderType.ANTHROPIC,
         model_id="claude-3-haiku-20240307",
         temperature=0.7,
         max_tokens=4000,

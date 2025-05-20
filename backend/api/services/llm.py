@@ -1,7 +1,7 @@
 # src/services/llm_service.py
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from src.db.models import LLMFoundation, LLMConfig
+from src.db import LLMFoundation, LLMConfig
 from api.schemas.llm import (
     LLMFoundationCreate, 
     LLMFoundationUpdate,

@@ -1,35 +1,43 @@
-python-dotenv==1.0.1
-tenacity==9.0.0
-qdrant_client==1.12.2
+### AI & LLM:
 llama-index==0.12.23
-llama-index-core==0.12.23.post2
 google-genai==1.11.0
 google-generativeai==0.8.4
-llama-index-llms-openai==0.3.25
 llama-index-llms-gemini==0.4.11
+llama-index-llms-openai==0.3.38
 llama-index-llms-anthropic==0.6.10
-llama-index-readers-file==0.4.1
-llama-index-embeddings-gemini
-llama-index-vector-stores-qdrant==0.4.2
+langchain-community==0.3.21
+tavily-python==0.5.1
+fastembed==0.6.0
+### Web/API:
 fastapi==0.115.6
 uvicorn==0.34.0
-colorama==0.4.6
-theflow==0.8.6
-html2text==2024.2.26
-fitz==0.0.1.dev2
-pydantic_settings==2.7.0
-python-multipart==0.0.20
-python-docx==1.1.2
-pymysql==1.1.1
-boto3==1.36.24
-fastembed==0.6.0
-tavily-python==0.5.1
-langchain-community==0.3.21
+wikipedia==1.4.0
 arxiv==2.2.0
-SpeechRecognition==3.14.2
-pydub==0.25.1
-magika==0.6.1
-llama-index-readers-json==0.3.0
+### Database & Task Queue:
 celery==5.5.2
 redis==5.2.1 
+qdrant_client==1.12.2
+llama-index-vector-stores-qdrant==0.4.2
+psycopg2-binary==2.9.10
+boto3==1.36.24
+### File/Document Handling:
+llama-index-readers-file==0.4.1
+html2text==2024.2.26
+fitz==0.0.1.dev2
+python-multipart==0.0.20
+python-docx==1.1.2
+llama-index-readers-json==0.3.0
 jsonschema==4.23.0
+markdownify==1.1.0
+magika==0.6.1
+PyMuPDF==1.25.5
+openpyxl==3.1.5
+xlrd==2.0.1
+### Audio/Voice:
+SpeechRecognition==3.14.2
+pydub==0.25.1
+### Utility & Others:
+python-dotenv==1.0.1
+tenacity==9.0.0
+theflow==0.8.6
+pydantic_settings==2.7.0

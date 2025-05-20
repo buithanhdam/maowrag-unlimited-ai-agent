@@ -1,11 +1,8 @@
 from typing import List
 from qdrant_client.http import models
-from src.logger import get_formatted_logger
 from .base import BaseRAG
 from llama_index.core import PromptTemplate
 from llama_index.core.schema import NodeWithScore
-
-logger = get_formatted_logger(__file__)
 
 
 class FusionRAG(BaseRAG):
@@ -56,7 +53,9 @@ class FusionRAG(BaseRAG):
     ) -> str:
         try:
             # Step 1: Generate sub-queries from user query
-            logger.info("[Fuse Search] - Step 1: Generate sub-queries from user query")
+            self.logger.info(
+                "[Fuse Search] - Step 1: Generate sub-queries from user query"
+            )
             query_gen_prompt_str = (
                 "You are a helpful assistant that generates multiple search queries based on a "
                 "single input query for rag business system. Generate {num_queries} search queries, one on each line, "
@@ -70,18 +69,27 @@ class FusionRAG(BaseRAG):
             queries = response.text.split("\n")
             queries.remove("")  # Remove empty string
             queries.append(query)
-            logger.info(f"Generated sub-queries: {queries}")
+            self.logger.info(f"Generated sub-queries: {queries}")
 
             # Step 2: Convert sub-queries and user query to embeddings
-            logger.info("[Fuse Search] - Step 2: Convert sub-queries and user query to embeddings")
-            dense_embeddings =  self.dense_embedding_model.get_text_embedding_batch(queries)
-            
+            self.logger.info(
+                "[Fuse Search] - Step 2: Convert sub-queries and user query to embeddings"
+            )
+            dense_embeddings = self.dense_embedding_model.get_text_embedding_batch(
+                queries
+            )
+
             batch_sparse_embeddings = self.sparse_embedding_model.embed(queries)
             batch_sparse_embeddings = list(batch_sparse_embeddings)
-            sparse_embeddings = [ sparse_embedding.as_object() for sparse_embedding in batch_sparse_embeddings]
-            
+            sparse_embeddings = [
+                sparse_embedding.as_object()
+                for sparse_embedding in batch_sparse_embeddings
+            ]
+
             # Step 3: Perform multi-vector search using query embedding and bm25
-            logger.info("[Fuse Search] - Step 3: Perform multi-vector search using query embedding and bm25")
+            self.logger.info(
+                "[Fuse Search] - Step 3: Perform multi-vector search using query embedding and bm25"
+            )
             sub_query_results = self.qdrant_client.hybrid_search_multi_vector(
                 dense_vectors=dense_embeddings,
                 sparse_vectors=sparse_embeddings,
@@ -95,18 +103,20 @@ class FusionRAG(BaseRAG):
                     )
                 ),
             )
-            logger.info(sub_query_results)
+            self.logger.info(sub_query_results)
             # Step 4: Rerank and Filter results based on score threshold
-            logger.info("[Fuse Search] - Step 4: Rerank and Filter results based on score threshold")
+            self.logger.info(
+                "[Fuse Search] - Step 4: Rerank and Filter results based on score threshold"
+            )
             doc_nodes = self.convert_scored_points_to_nodes(
                 sub_query_results, score_threshold=score_threshold
             )
 
             contexts = self.fuse_rerank(doc_nodes, similarity_top_k=limit)
-            logger.info(f"contexts: {contexts}")
-            
+            self.logger.info(f"contexts: {contexts}")
+
             # Step 5: Generate final response
-            logger.info("[Fuse Search] - Step 5: Generate final response")
+            self.logger.info("[Fuse Search] - Step 5: Generate final response")
             prompt = f"""Given the following context and question, provide a comprehensive answer based solely on the provided context. If the context doesn't contain relevant information, say so.
 
             Context:
@@ -121,5 +131,5 @@ class FusionRAG(BaseRAG):
             return response
 
         except Exception as e:
-            logger.error(f"Error during search: {str(e)}")
+            self.logger.error(f"Error during search: {str(e)}")
             raise

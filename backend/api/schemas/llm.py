@@ -4,7 +4,6 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 from src.enums import LLMProviderType
 
-
 class LLMFoundationBase(BaseModel):
     provider: LLMProviderType
     model_id: str

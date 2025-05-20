@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from src.db.models import Agent, AgentKnowledgeBase, KnowledgeBase, LLMConfig, LLMFoundation, AgentConversation
+from src.db import Agent, AgentKnowledgeBase, KnowledgeBase, LLMConfig, LLMFoundation, AgentConversation
 from api.schemas.agent import AgentCreate, AgentUpdate, AgentResponse
 
 class AgentService:

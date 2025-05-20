@@ -14,9 +14,9 @@ This repository is an advanced implementation of AI agent techniques, focusing o
 2. [Introduction to RAG](#2-introduction-to-rag)
 3. [Advanced RAG Techniques](#3-advanced-rag-techniques)
 4. [Other AI Technologies](#4-other-ai-technologies)
-5. [Running Backend Only as API](#5-running-backend-only-as-api)
-6. [Running the Project with Docker](#6-running-the-project-with-docker)
-7. [Project Structure](#7-project-structure)
+5. [Running Frontend Only as API](#5-running-frontend-only-as-api)
+6. [Running Backend Only as API](#6-running-backend-only-as-api)
+7. [Running the Project with Docker](#7-running-the-project-with-docker)
 8. [Contributing](#8-contributing)
 9. [License](#9-license)
 10. [References](#10-references)
@@ -91,13 +91,42 @@ This repository supports several advanced RAG techniques:
 
 ---
 
-## 5. Running Backend Only as API
+## 5. Running Frontend Only as API
+
+### 5.1 Run Frontend Separately (Optional)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+- Access API: http://localhost:3000
+
+### 5.2 Frontend Features
+
+* Prompt interface for multi-agent tasks
+* Drag and drop file upload
+* Agent memory and conversation UI
+* Integration with backend via REST APIs
+
+---
+
+## 6. Running Backend Only as API
+* Located in `backend/`
+* Provides RAG, web search, knowledge ingestion, and task orchestration
+* Uses:
+
+  * PostgreSQL (structured memory)
+  * Qdrant (vector store for embeddings)
+  * Redis (task queue)
+  * FFmpeg (audio/video support)
 
 To run the backend separately, follow the instructions in the [backend README](backend/README.md).
 
 ---
 
-## 6. Running the Project with Docker
+## 7. Running the Project with Docker
 
 ### Prerequisites
 
@@ -142,37 +171,38 @@ cd maowrag-unlimited-ai-agent
 cp ./frontend/.env.example ./frontend/.env
 cp ./backend/.env.example ./backend/.env
 ```
+and fill values
 
-and fill values:
-
+- For backend:
 ```plaintext
-# For backend .env
-# API key
+# API Keys
 GOOGLE_API_KEY=
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
 TAVILY_API_KEY=
 
-# URL
-BACKEND_API_URL=http://localhost:8000
-QDRANT_URL=http://localhost:6333
+# URLs
+BACKEND_API_URL=
+QDRANT_URL=
+CELERY_BROKER_URL=
 
-# Database connection
-MYSQL_USER=
-MYSQL_PASSWORD=
-MYSQL_ROOT_PASSWORD=
-MYSQL_HOST=
-MYSQL_PORT=
-MYSQL_DB=
-MYSQL_ALLOW_EMPTY_PASSWORD=yes
+# PostgreSQL
+DB_USER=postgres
+DB_PASSWORD=1
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=maowrag
 
-# AWS S3 connection
+# AWS
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
-AWS_REGION_NAME=
-AWS_STORAGE_TYPE=
-AWS_ENDPOINT_URL=
+AWS_REGION_NAME=ap-southeast-2
+AWS_STORAGE_TYPE=s3
+AWS_ENDPOINT_URL=https://s3.ap-southeast-2.amazonaws.com
+```
+- For backend:
 
+```plaintext
 # For frontend .env
 NEXT_PUBLIC_BACKEND_API_URL=http://localhost:8001
 ```
@@ -183,50 +213,27 @@ NEXT_PUBLIC_BACKEND_API_URL=http://localhost:8001
 docker-compose up --build
 ```
 
-#### 4. Set Up MySQL Database (if needed)
+This will launch:
 
-```bash
-docker exec -it your-container-name bash
-mysql -u root -p
-```
-- Enter `root password` (configured in `.env` or `docker-compose.yml`).
+| Service            | Port    | Description                |
+| ------------------ | ------- | -------------------------- |
+| FastAPI API        | `:8000` | Backend API                |
+| Frontend (Next.js) | `:3000` | Web UI                     |
+| PostgreSQL         | `:5432` | Database                   |
+| Redis              | `:6379` | Celery broker              |
+| Qdrant             | `:6333` | Vector DB                  |
+| Celery Worker      | N/A     | Background task processing |
 
-Run SQL queries:
+#### 4. Access the Application
 
-```sql
-CREATE USER 'user'@'%' IDENTIFIED BY '1';
-GRANT ALL PRIVILEGES ON maowrag.* TO 'user'@'%';
-FLUSH PRIVILEGES;
-CREATE DATABASE maowrag;
-```
+- Frontend UI: http://localhost:3000
+- Backend API Docs: http://localhost:8000/docs
+- Health Check: http://localhost:8000/health
 
-#### 5. Access the Application
-
-- **Frontend**: `http://localhost:3000`
-- **Backend**: `http://localhost:8000`
-- **Qdrant**: Ports `6333`, `6334`
-- **MySQL**: Port `3306`
-
-#### 6. Stop the Project
+#### 5. Stop the Project
 
 ```bash
 docker-compose down
-```
-
----
-
-## 7. Project Structure
-
-```
-📦 maowrag-unlimited-ai-agent
-├── backend/       # Backend source code
-│   ├── Dockerfile.backend
-│   ├── requirements.txt
-├── frontend/      # Frontend source code
-│   ├── Dockerfile.frontend
-│   ├── next.config.js
-├── docker-compose.yml  # Docker Compose setup
-├── Jenkinsfile    # CI/CD configuration
 ```
 
 ---

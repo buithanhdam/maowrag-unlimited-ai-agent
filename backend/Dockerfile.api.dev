@@ -1,0 +1,39 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies (bao gồm cả curl để tải uv)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    default-libmysqlclient-dev \
+    pkg-config \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv (thay thế pip)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    mv ~/.local/bin/uv /usr/local/bin/ && \
+    mv ~/.local/bin/uvx /usr/local/bin/ && \
+    uv pip install --upgrade pip --system
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies bằng uv (nhanh hơn pip thông thường)
+RUN uv pip install --no-cache-dir -r requirements.txt --system
+
+# Copy application
+COPY . .
+
+# Define environment variables
+ENV PYTHONUNBUFFERED=1
+ENV DEBUG=true
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+EXPOSE 8000
+
+# Verify installation
+RUN which uvicorn
+
+# Start the application
+CMD ["uvicorn", "app_fastapi:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

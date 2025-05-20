@@ -4,13 +4,11 @@ from fastapi import HTTPException
 from typing import List, Optional
 from datetime import datetime
 
-from src.db.models import (
-    Communication, CommunicationAgentMember, 
-    CommunicationConversation, Agent, Conversation, AgentConversation
+from src.db import (
+    Communication, CommunicationAgentMember, Agent
 )
 from api.schemas.communication import (
-    CommunicationCreate, CommunicationUpdate,
-    CommunicationMemberCreate
+    CommunicationCreate, CommunicationUpdate
 )
 
 class CommunicationService:
@@ -20,6 +18,7 @@ class CommunicationService:
             communication = Communication(
                 name=comm_create.name,
                 description=comm_create.description,
+                type=comm_create.type,
                 configuration=comm_create.configuration or {}
             )
             db.add(communication)
@@ -30,7 +29,6 @@ class CommunicationService:
                 member = CommunicationAgentMember(
                     communication_id=communication.id,
                     agent_id=agent_id,
-                    role="member"
                 )
                 db.add(member)
 

@@ -1,0 +1,133 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports: 
+      - "6379:6379"
+    volumes:
+      - ./backend/data/redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - maowrag-dev
+  postgres:
+    image: postgres:14.5
+    env_file:
+      - ./backend/.env
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1
+      - POSTGRES_DB=maowrag
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./backend/data/postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "maowrag"] # Updated healthcheck
+      interval: 1s
+      timeout: 5s
+      retries: 10
+    networks:
+      - maowrag-dev
+  qdrant:
+    image: "qdrant/qdrant:v1.12.0"
+    ports:
+      - "6335:6333"
+      - "6336:6334"
+    volumes:
+      - ./backend/data/qdrant_storage:/qdrant/storage
+    environment:
+      QDRANT__STORAGE__ON_DISK_PAYLOAD: 'true'
+    networks:
+      - maowrag-dev
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/6333 && echo -e 'GET /healthz HTTP/1.1\r\nHost: localhost\r\n\r\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      interval: 30s
+      timeout: 180s
+      retries: 3
+      start_period: 40s
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    volumes:
+      - ./backend:/app
+    env_file:
+      - ./backend/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "celery", "-A", "src.celery_worker", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - maowrag-dev
+    command: celery -A src.celery_worker worker --loglevel=info
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.api.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    env_file:
+      - ./backend/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      celery_worker:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - maowrag-dev
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./frontend/.env
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_BACKEND_API_URL=http://localhost:8000
+      - WATCHPACK_POLLING=true    # Enable polling for hot reload in Docker
+    volumes:
+      - ./frontend:/app           # Mount the source code
+      - /app/node_modules         # Preserve node_modules in container
+      - /app/.next               # Preserve Next.js build cache
+    networks:
+      - maowrag-dev
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  maowrag-dev:
+    driver: bridge

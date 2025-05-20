@@ -8,12 +8,14 @@ from typing import Annotated
 from botocore.exceptions import ClientError
 from tenacity import retry, stop_after_attempt, wait_fixed, after_log, before_sleep_log
 from src.config import global_config, Settings
+
 sys.path.append(str(Path(__file__).parent.parent.parent.parent))
 from urllib.parse import urlparse
+
 logger = get_formatted_logger(__file__)
 
-def get_aws_s3_client(
-) -> "S3Client":
+
+def get_aws_s3_client() -> "S3Client":
     return S3Client(
         aws_access_key_id=global_config.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=global_config.AWS_SECRET_ACCESS_KEY,
@@ -40,8 +42,8 @@ class S3Client:
         aws_access_key_id: str,
         aws_secret_access_key: str,
         region_name: str,
-        storage_type :str,
-        endpoint_url:str
+        storage_type: str,
+        endpoint_url: str,
     ):
         """
         Initialize AWS S3 client
@@ -52,15 +54,15 @@ class S3Client:
             region_name (str): AWS region name (e.g., 'us-east-1')
         """
         self.region_name = region_name
-        self.storage_type =storage_type
-        self.aws_access_key_id =aws_access_key_id
-        self.aws_secret_access_key =aws_secret_access_key
+        self.storage_type = storage_type
+        self.aws_access_key_id = aws_access_key_id
+        self.aws_secret_access_key = aws_secret_access_key
         self.client = boto3.client(
             service_name=storage_type,
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             region_name=region_name,
-            endpoint_url=endpoint_url
+            endpoint_url=endpoint_url,
         )
         self.test_connection()
         logger.info("S3Client initialized successfully!")
@@ -69,10 +71,10 @@ class S3Client:
     def from_setting(cls, global_config: Settings) -> "S3Client":
         return cls(
             aws_access_key_id=global_config.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=global_config.AWS_SECRET_ACCESS_KEY,
-        region_name=global_config.AWS_REGION_NAME,
-        storage_type=global_config.AWS_STORAGE_TYPE,
-        endpoint_url=global_config.AWS_ENDPOINT_URL,
+            aws_secret_access_key=global_config.AWS_SECRET_ACCESS_KEY,
+            region_name=global_config.AWS_REGION_NAME,
+            storage_type=global_config.AWS_STORAGE_TYPE,
+            endpoint_url=global_config.AWS_ENDPOINT_URL,
         )
 
     def test_connection(self):
@@ -118,11 +120,13 @@ class S3Client:
             else:
                 self.client.create_bucket(
                     Bucket=bucket_name,
-                    CreateBucketConfiguration={'LocationConstraint': region}
+                    CreateBucketConfiguration={"LocationConstraint": region},
                 )
-            logger.info(f"Bucket {bucket_name} created successfully in region {region}!")
+            logger.info(
+                f"Bucket {bucket_name} created successfully in region {region}!"
+            )
         except ClientError as e:
-            if 'BucketAlreadyOwnedByYou' not in str(e):
+            if "BucketAlreadyOwnedByYou" not in str(e):
                 logger.error(f"Failed to create bucket: {e}")
                 raise
 
@@ -167,27 +171,27 @@ class S3Client:
         """
         try:
             parsed = urlparse(file_url)
-            
+
             # Extract bucket name from hostname
-            hostname_parts = parsed.netloc.split('.')
+            hostname_parts = parsed.netloc.split(".")
             bucket_name = hostname_parts[0]
             if not self.check_bucket_exists(bucket_name):
                 logger.warning(f"Bucket {bucket_name} does not exist. Do nothing...")
                 return
             # Extract object key from path
-            object_name = parsed.path.lstrip('/')
+            object_name = parsed.path.lstrip("/")
 
             self.client.download_file(
-                Bucket=bucket_name,
-                Key=object_name,
-                Filename=file_path_to_save
+                Bucket=bucket_name, Key=object_name, Filename=file_path_to_save
             )
-            logger.info(f"Downloaded: {bucket_name}/{object_name} --> {file_path_to_save}")
+            logger.info(
+                f"Downloaded: {bucket_name}/{object_name} --> {file_path_to_save}"
+            )
         except ClientError as e:
             logger.error(f"Download failed: {str(e)}")
             raise
 
-    def remove_file(self,  object_name: str) -> None:
+    def remove_file(self, object_name: str) -> None:
         """
         Remove file from S3
 
@@ -197,15 +201,15 @@ class S3Client:
 
         try:
             parsed = urlparse(object_name)
-            
+
             # Extract bucket name from hostname
-            hostname_parts = parsed.netloc.split('.')
+            hostname_parts = parsed.netloc.split(".")
             bucket_name = hostname_parts[0]
             if not self.check_bucket_exists(bucket_name):
                 logger.warning(f"Bucket {bucket_name} does not exist. Do nothing...")
                 return
             # Extract object key from path
-            object_name = parsed.path.lstrip('/')
+            object_name = parsed.path.lstrip("/")
             self.client.delete_object(
                 Bucket=bucket_name,
                 Key=object_name,
@@ -228,14 +232,11 @@ class S3Client:
 
         try:
             # List and delete all objects in the bucket
-            paginator = self.client.get_paginator('list_objects_v2')
+            paginator = self.client.get_paginator("list_objects_v2")
             for page in paginator.paginate(Bucket=bucket_name):
-                if 'Contents' in page:
-                    for obj in page['Contents']:
-                        self.client.delete_object(
-                            Bucket=bucket_name,
-                            Key=obj['Key']
-                        )
+                if "Contents" in page:
+                    for obj in page["Contents"]:
+                        self.client.delete_object(Bucket=bucket_name, Key=obj["Key"])
 
             # Delete the bucket itself
             self.client.delete_bucket(Bucket=bucket_name)

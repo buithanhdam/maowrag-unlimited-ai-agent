@@ -1,5 +1,5 @@
 from pathlib import Path
-from .file import (
+from .kotaemon import (
     JSONReader,
     PandasCSVReader,
     MarkdownReader,
@@ -7,7 +7,7 @@ from .file import (
     MboxReader,
     XMLReader,
     RTFReader,DocxReader,TxtReader,ExcelReader,HtmlReader,MhtmlReader,PDFReader,PDFThumbnailReader,PandasExcelReader)
-from .media import MarkItDown
+from .markitdown import MarkItDown
 from google import genai
 from src.config import global_config
 
@@ -21,8 +21,9 @@ def get_extractor():
         ".pdf": PDFThumbnailReader(),
         ".docx": DocxReader(),
         ".html": HtmlReader(),
-        ".csv": PandasCSVReader(pandas_config=dict(on_bad_lines="skip")),
-        ".xlsx": ExcelReader(),
+        ".csv": md,
+        ".xlsx": md,
+        ".xls":md,
         ".json": JSONReader(),
         ".txt": TxtReader(),
         # ".pptx": PptxReader(),

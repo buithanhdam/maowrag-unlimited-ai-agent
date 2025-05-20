@@ -1,10 +1,10 @@
 import json
 from typing import List, Dict
-from fastapi import APIRouter, Form, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter,status, Form, UploadFile, File, HTTPException, Depends
 from jsonschema import ValidationError
 from sqlalchemy.orm import Session
-
-from src.db.mysql import get_db
+from src.config import global_config
+from src.db import get_session
 from api.services.kb import KnowledgeBaseService
 from api.schemas.kb import (
     QueryRequest,
@@ -24,7 +24,7 @@ async def get_kb_service():
 @kb_router.post("/", response_model=KnowledgeBaseResponse)
 async def create_knowledge_base(
     kb_data: KnowledgeBaseCreate,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Create a new knowledge base with RAG configuration"""
@@ -34,7 +34,7 @@ async def create_knowledge_base(
 async def update_knowledge_base(
     kb_id: int,
     kb_data: KnowledgeBaseUpdate,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Update an existing knowledge base"""
@@ -44,7 +44,7 @@ async def update_knowledge_base(
 async def list_knowledge_bases(
     skip: int = 0,
     limit: int = 10,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """List all knowledge bases"""
@@ -53,7 +53,7 @@ async def list_knowledge_bases(
 @kb_router.get("/{kb_id}", response_model=KnowledgeBaseResponse)
 async def get_knowledge_base(
     kb_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Get a specific knowledge base"""
@@ -62,7 +62,7 @@ async def get_knowledge_base(
 @kb_router.delete("/{kb_id}")
 async def delete_knowledge_base(
     kb_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Delete a knowledge base and all its documents"""
@@ -71,7 +71,7 @@ async def delete_knowledge_base(
 @kb_router.get("/{kb_id}/documents", response_model=List[DocumentResponse])
 async def get_documents(
     kb_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Get all documents for a specific knowledge base"""
@@ -82,12 +82,41 @@ async def upload_document(
     kb_id: int,
     doc_data: str = Form(...),
     file: UploadFile = File(...),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Upload a document for a specific knowledge base"""
     # Validate file type and size        
     try:
+        extension_allowed = global_config.READER_CONFIG.supported_formats
+
+        if not extension_allowed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No supported file formats configured",
+            )
+
+        # Check if filename exists
+        if not file.filename:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Missing filename"
+            )
+
+        # Convert filename to lowercase for case-insensitive comparison
+        filename_lower = file.filename.lower()
+
+        # Check if file extension is supported
+        if not any(filename_lower.endswith(ext.lower()) for ext in extension_allowed):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Only {', '.join(extension_allowed)} files allowed",
+            )
+        # Check if file size is within the allowed limit
+        if file.size > global_config.READER_CONFIG.max_file_size:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"File size exceeds the allowed limit of {global_config.READER_CONFIG.max_file_size/1024/1024}MB",
+            )
         # Parse and validate the JSON string
         try:
             doc_data_dict = json.loads(doc_data)
@@ -113,7 +142,7 @@ async def upload_document(
 async def process_document(
     kb_id: int,
     doc_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Process an uploaded document"""
@@ -128,7 +157,7 @@ async def process_document(
 async def delete_document(
     kb_id: int,
     document_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_session),
     kb_service: KnowledgeBaseService = Depends(get_kb_service)
 ):
     """Delete a document from a knowledge base"""

@@ -2,7 +2,7 @@
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from src.db.models import MessageType
+from src.enums import MessageType
 
 class ConversationBase(BaseModel):
     """Base model for Conversation"""
