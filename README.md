@@ -7,6 +7,7 @@ This repository is an advanced implementation of AI agent techniques, focusing o
 - **Multi-Agent Orchestration** for coordinating multiple agents in AI workflows.
 - **Retrieval-Augmented Generation (RAG)** framework to improve AI-generated responses.
 - **AI Agent Techniques** such as **Planning (ReAct flow)**, **Reflection**, etc. for enhanced reasoning.
+- **For everyday update about backend (maowrag ai research)** follow this repo : [maowrag-ai-research](https://github.com/buithanhdam/maowrag-ai-research)
 
 ## Table of Contents
 
@@ -258,3 +259,4 @@ This project is licensed under the MIT License.
 - [multi-agent](https://github.com/buithanhdam/multi-agent)
 - [RAG Cookbook](https://github.com/athina-ai/rag-cookbook)
 - [RAG-application-with-multi-agent](https://github.com/buithanhdam/rag-app-agent-llm)
+- [Maowrag Research](https://github.com/buithanhdam/maowrag-ai-research)
